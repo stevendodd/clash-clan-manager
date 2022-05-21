@@ -1,0 +1,6 @@
+.DS_Store
+.project
+upload.sh
+data/config.json
+data/mydata.json
+

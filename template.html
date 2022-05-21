@@ -1,0 +1,49 @@
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="background-color:#000000; color:#ffffff; font-family:Verdana;">
+
+% for line in content:
+  ${line}
+% endfor
+
+<table cellpadding=2 cellspacing=0 style="font-size: 0.9em">
+  <tr><td valign=top><table cellpadding=2 cellspacing=0 >
+  
+  % for i, member in enumerate(members):
+
+  % if i%2:
+  <tr style="background-color:#929292">
+  % else:
+  <tr>
+  % endif
+    <td valign=center><img height=50% src="${member["league"]["iconUrls"]["tiny"]}"></td> 
+    <td style="white-space:nowrap;"><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary">${member["name"]}</a></td>
+    <td align=center><img height=30 src="${member["townhallLevel"]}"></td>
+    <td style="white-space:nowrap;">${member["role"]}&nbsp;</td>
+    <td style="white-space:nowrap;" align=center>${member["donations"]} / ${member["donationsReceived"]}</td>
+
+    % for w in member["wars"]:
+    % if w==0:
+    <td><table cellpadding=1><tr><td style="background-color:LightGray">&nbsp;</td></table></td>
+    % elif w==1:
+    <td><table cellpadding=1><tr><td style="background-color:Orange">&nbsp;</td></table></td>
+    % elif w==2:
+    <td><table cellpadding=1><tr><td style="background-color:MediumSeaGreen">&nbsp;</td></table></td>
+    % elif w==-1:
+    <td><table cellpadding=1><tr><td style="background-color:Tomato">&nbsp;</td></table></td>
+    % else:
+    <td><table cellpadding=1><tr><td>${w}</td></table></td>
+    % endif
+    %endfor
+    
+    <td align=center>&nbsp;${member["rank"]}&nbsp;</td> 
+  </tr>
+  %endfor
+  
+  
+  </table></td></tr>
+</table>
+</body>
+</html>
