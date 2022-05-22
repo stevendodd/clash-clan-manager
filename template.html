@@ -11,9 +11,33 @@
 <table cellpadding=2 cellspacing=0 style="font-size: 0.9em">
   <tr><td valign=top><table cellpadding=2 cellspacing=0 >
   
+  <tr>
+  <td colspan=3></td>
+  <td colspan=2 align=right style="white-space:nowrap;"> 
+	  <table><tr><td>War Log:&nbsp;</td><td>
+	  % if warState != "warEnded":
+	  <table cellpadding=1><tr><td style="background-color:Orange">&nbsp;</td></table>
+	  % else:
+	  <table cellpadding=1><tr><td>&nbsp;</td></table>
+	  % endif
+	  </td></tr></table>
+  </td>
+   
+  % for w in warlog:
+    % if w["result"]=="win":
+    <td><table cellpadding=1><tr><td style="background-color:MediumSeaGreen">&nbsp;</td></table></td>
+    % elif w["result"]=="lose":
+    <td><table cellpadding=1><tr><td style="background-color:Tomato">&nbsp;</td></table></td>
+    % else:
+    <td><table cellpadding=1><tr><td style="background-color:LightGray">&nbsp;</td></table></td>
+    % endif
+    %endfor
+    <td></td>
+  </tr>
+  
   % for i, member in enumerate(members):
 
-  % if i%2:
+  % if not i%2:
   <tr style="background-color:#929292">
   % else:
   <tr>

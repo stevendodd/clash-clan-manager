@@ -18,6 +18,8 @@ if os.path.exists('data/config.json'):
 
 currentwar_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/currentwar"
 clan_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag
+warlog_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/warlog?limit=10"
+
 league_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/currentwar/leaguegroup"
 league_round_url = "https://api.clashofclans.com/v1/clanwarleagues/wars/"
 player_url = "https://api.clashofclans.com/v1/players/%23"
@@ -43,12 +45,23 @@ def update():
     response = requests.get(clan_url, headers={'Authorization': 'Bearer ' + token})
     if response.json():
         clan["clan"] = response.json()
+        
+    # Update warlog data
+    response = requests.get(warlog_url, headers={'Authorization': 'Bearer ' + token})
+    if response.json():
+        clan["warLog"] = response.json()
     
     processResults()
     write()
 
 def processResults():    
     members = clan["clan"]["memberList"]
+    
+    if len(clan["wars"]) >= 1:
+        clan["warLog"]["currentState"] = clan["wars"][0]["state"]
+    else:
+        clan["warLog"]["currentState"] = "warEnded"
+    
     for m in members:
         sortOrder = 0
         m["townhallLevel"] = ""
@@ -117,7 +130,11 @@ def processResults():
     global page
     mytemplate = Template(filename='template.html')        
     members.sort(reverse=True, key=sortMembers)    
-    page = mytemplate.render(members=members, content=content)
+    page = mytemplate.render(members=members, 
+                             content=content, 
+                             warlog=clan["warLog"]["items"], 
+                             warState=clan["warLog"]["currentState"]
+                             )
 
 
 def write():
