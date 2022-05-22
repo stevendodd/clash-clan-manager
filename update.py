@@ -43,53 +43,11 @@ def update():
     response = requests.get(clan_url, headers={'Authorization': 'Bearer ' + token})
     if response.json():
         clan["clan"] = response.json()
-        
+    
+    processResults()
     write()
 
-def write():
-    global clan
-    with open('data/mydata.json', 'w') as f:
-        json.dump(clan, f)
-        
-def read():
-    if os.path.exists('data/mydata.json'):
-        f = open('data/mydata.json')
-        return(json.load(f))
-    else:
-        return({"wars": [], "members": []})
-
-def loadContent():
-    if os.path.exists('data/content.html'):
-        f = open('data/content.html')
-        return(f.readlines())
-    else:
-        return("")
-
-def trimList(list, size):
-    n = len(list)
-    for i in range(0, n - size ):
-        list.pop()
-    return(list)
-
-def sortMembers(e):
-    return e["rank"]
-    
-clan = read()
-content = loadContent()
-update()
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=update, trigger="interval", seconds=60)
-scheduler.start()
-
-# Shut down the scheduler when exiting the app
-atexit.register(lambda: scheduler.shutdown())
-
-app = Flask(__name__)
-
-@app.route("/",methods = ['GET'])
-def hello():
-    mytemplate = Template(filename='template.html')
-
+def processResults():    
     members = clan["clan"]["memberList"]
     for m in members:
         sortOrder = 0
@@ -155,9 +113,58 @@ def hello():
             donationMod = 0.90
             
         m["rank"] = int(donationMod*rank*100)
-        
+    
+    global page
+    mytemplate = Template(filename='template.html')        
     members.sort(reverse=True, key=sortMembers)    
-    return(mytemplate.render(members=members, content=content))
+    page = mytemplate.render(members=members, content=content)
+
+
+def write():
+    global clan
+    with open('data/mydata.json', 'w') as f:
+        json.dump(clan, f)
+        
+def read():
+    if os.path.exists('data/mydata.json'):
+        f = open('data/mydata.json')
+        return(json.load(f))
+    else:
+        return({"wars": [], "members": []})
+
+def loadContent():
+    if os.path.exists('data/content.html'):
+        f = open('data/content.html')
+        return(f.readlines())
+    else:
+        return("")
+
+def trimList(list, size):
+    n = len(list)
+    for i in range(0, n - size ):
+        list.pop()
+    return(list)
+
+def sortMembers(e):
+    return e["rank"]
+
+clan = read()
+content = loadContent()
+page = ""
+
+update()
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=update, trigger="interval", seconds=60)
+scheduler.start()
+# Shut down the scheduler when exiting the app
+atexit.register(lambda: scheduler.shutdown())
+
+app = Flask(__name__)
+
+@app.route("/",methods = ['GET'])
+def hello():
+    return(page)
 
 @app.route("/clan",methods = ['GET'])
 def showData():
