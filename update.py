@@ -18,7 +18,7 @@ if os.path.exists('data/config.json'):
 
 currentwar_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/currentwar"
 clan_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag
-warlog_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/warlog?limit=10"
+warlog_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/warlog?limit=20"
 
 league_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/currentwar/leaguegroup"
 league_round_url = "https://api.clashofclans.com/v1/clanwarleagues/wars/"

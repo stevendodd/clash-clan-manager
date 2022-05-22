@@ -22,16 +22,22 @@
 	  % endif
 	  </td></tr></table>
   </td>
-   
-  % for w in warlog:
-    % if w["result"]=="win":
-    <td><table cellpadding=1><tr><td style="background-color:MediumSeaGreen">&nbsp;</td></table></td>
-    % elif w["result"]=="lose":
-    <td><table cellpadding=1><tr><td style="background-color:Tomato">&nbsp;</td></table></td>
-    % else:
-    <td><table cellpadding=1><tr><td style="background-color:LightGray">&nbsp;</td></table></td>
-    % endif
-    %endfor
+  
+	<% count = 0 %>
+	% for w in warlog:
+		% if w["attacksPerMember"] == 2:
+		% if count < 10:
+			<% count += 1 %>
+			% if w["result"]=="win":
+			<td><table cellpadding=1><tr><td style="background-color:MediumSeaGreen">&nbsp;</td></table></td>
+			% elif w["result"]=="lose":
+			<td><table cellpadding=1><tr><td style="background-color:Tomato">&nbsp;</td></table></td>
+			% else:
+			<td><table cellpadding=1><tr><td style="background-color:LightGray">&nbsp;</td></table></td>
+			% endif
+		% endif
+		% endif
+	%endfor
     <td></td>
   </tr>
   
