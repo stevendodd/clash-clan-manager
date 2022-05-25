@@ -5,7 +5,8 @@ Add data/config.json
 ```
 {
 	"token": "my clash api token https://developer.clashofclans.com/",
-	"clanTag": "QVCJLCP"
+	"clanTag": "QVCJLCP",
+	"key": "Notes password"
 }
 ```
 

@@ -1,20 +1,26 @@
 from flask import Flask
-from flask import request
+from flask import request, redirect, render_template
+from flask_wtf import FlaskForm
+from wtforms import (StringField, TextAreaField, SubmitField)
+from wtforms.validators import InputRequired, Length
 from mako.template import Template
 import requests
 import json
 import atexit
 import os.path
+import os
 from apscheduler.schedulers.background import BackgroundScheduler
 
 token = ""
 clanTag = ""
+notesKey = ""
 
 if os.path.exists('data/config.json'):
     f = open('data/config.json')
     c = json.load(f)
     token = c["token"]
     clanTag = c["clanTag"]
+    notesKey = c["key"]
 
 currentwar_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/currentwar"
 clan_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag
@@ -178,6 +184,47 @@ scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
 app = Flask(__name__)
+SECRET_KEY = os.urandom(32)
+app.config['SECRET_KEY'] = SECRET_KEY
+
+class PostForm(FlaskForm):
+    post = TextAreaField('Write something')
+    key = StringField()
+    submit = SubmitField('Save')
+    
+@app.route('/post',methods = ['POST','GET'])
+def post():
+    form = PostForm()
+    
+    post = ""
+    key = ""
+    if request.method == 'POST':
+        post = request.form.get('post')
+        key = request.form.get('key')
+    
+    if key == notesKey:
+        form.key.data = key
+                       
+        if post == "" or not post:      
+            if os.path.exists('data/notes.json'):
+                f = open('data/notes.json')
+                c = json.load(f)
+                form.post.data = c["notes"]
+            else:
+                form.post.data = 'hi'
+                
+        else:
+            form.post.data = post
+            
+            notes = {"notes": post}
+            with open('data/notes.json', 'w') as f:
+                json.dump(notes, f)
+        
+        return render_template('post/post.html',form=form)
+    
+    else:
+        return redirect("/", code=302)
+
 
 @app.route("/",methods = ['GET'])
 def hello():

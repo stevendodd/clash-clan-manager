@@ -8,12 +8,16 @@
   ${line}
 % endfor
 
+<form method="post" action="/post">
 <table cellpadding=2 cellspacing=0 style="font-size: 0.9em">
   <tr><td valign=top><table cellpadding=2 cellspacing=0 >
   
   <tr>
-  <td colspan=3></td>
-  <td colspan=2 align=right style="white-space:nowrap;"> 
+  <td valign=center colspan=3>
+  <input type="password" size=15 name="key">
+  <input type="submit" style="webkit-appearance: none;webkit-border-radius: 0;" height=100% value='Notes'>
+  </td>
+  <td colspan=2 valign=center align=right style="white-space:nowrap;"> 
 	  <table><tr><td>War Log:&nbsp;</td><td>
 	  % if warState != "warEnded":
 	  <table cellpadding=1><tr><td style="background-color:Orange">&nbsp;</td></table>
@@ -73,7 +77,8 @@
   %endfor
   
   
-  </table></td></tr>
+  </table>  </form>
+  </td></tr>
 </table>
 </body>
 </html>

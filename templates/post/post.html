@@ -1,0 +1,46 @@
+<!DOCTYPE HTML><html><head>
+
+<script type="text/javascript" src="{{ url_for('static', filename='tinymce/tinymce.min.js') }}"></script>
+<script type="text/javascript">
+    tinymce.init({
+    	selector: '#post',
+        plugins: 'advlist lists charmap hr anchor pagebreak searchreplace fullscreen insertdatetime nonbreaking table textcolor',
+        toolbar:  'insertfile undo redo | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link | fullpage | forecolor backcolor emoticons | codesample',
+        width: "100%",
+        height: "88vh"
+    });
+</script>
+
+</head>
+<body style="background-color:#000000; color:#ffffff; font-family:Verdana;">
+<form method="post">
+
+<table style="font-size: 2em"><tr><td>
+<a style="color: gold;" href="/">Home</a> &nbsp; 
+
+</td><td>
+<div class="field">
+    <div class="control">
+        {{ form.submit(class_="button is-link", height_="100%") }}
+    </div>
+</div>
+</td></tr></table>
+
+
+<div class="field">
+    <p class="control">
+        {{ form.post(rows=25) }}
+    </p>
+</div>
+
+<div style="display: none;">
+<div class="field">
+    <p class="control">
+        {{ form.key() }}
+    </p>
+</div>
+</div>
+
+</form>
+
+</body></html>
