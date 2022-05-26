@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, app
 from flask import request, redirect, render_template
 from flask_wtf import FlaskForm
 from wtforms import (StringField, TextAreaField, SubmitField)
@@ -14,31 +14,61 @@ from apscheduler.schedulers.background import BackgroundScheduler
 token = ""
 clanTag = ""
 notesKey = ""
+page = ""
 
-if os.path.exists('data/config.json'):
-    f = open('data/config.json')
-    c = json.load(f)
-    token = c["token"]
-    clanTag = c["clanTag"]
-    notesKey = c["key"]
+clan = {}
+apiUrls = {}
 
-currentwar_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/currentwar"
-clan_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag
-warlog_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/warlog?limit=20"
+configFile = "data/config.json"
+dataFile = "data/mydata.json"
+notesDataFile = "data/notes.json"
 
-league_url = "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/currentwar/leaguegroup"
-league_round_url = "https://api.clashofclans.com/v1/clanwarleagues/wars/"
-player_url = "https://api.clashofclans.com/v1/players/%23"
+homeHeader = "data/content.html"
+homeTemplate = "templates/home.html"
+notesTemplate = "notes.html"
 
-response = requests.get(clan_url, headers={'Authorization': 'Bearer ' + token})
-if response.status_code != 200:
-    exit(str(response) + ": Failed to get clan")
+app = Flask(__name__)
+
+def main():
+    global token, clanTag, notesKey, clan, app, apiUrls
+    
+    if os.path.exists(configFile):
+        f = open(configFile)
+        c = json.load(f)
+        token = c["token"]
+        clanTag = c["clanTag"]
+        notesKey = c["key"]
+    
+    apiUrls = {
+        "currentwar": "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/currentwar",
+        "clan": "https://api.clashofclans.com/v1/clans/%23" + clanTag,
+        "warlog": "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/warlog?limit=20",
+        
+        "league": "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/currentwar/leaguegroup",
+        "leagueRound": "https://api.clashofclans.com/v1/clanwarleagues/wars/",
+        "player": "https://api.clashofclans.com/v1/players/%23"
+    }
+    
+    clan = readData()
+    update()
+    
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=update, trigger="interval", seconds=60)
+    scheduler.start()
+    atexit.register(lambda: scheduler.shutdown())
+    
+    SECRET_KEY = os.urandom(32)
+    app.config['SECRET_KEY'] = SECRET_KEY
+
+    response = requests.get(apiUrls["clan"], headers={'Authorization': 'Bearer ' + token})
+    if response.status_code != 200:
+        exit(str(response) + ": Failed to get clan")
 
 def update():
     global clan
     
     # Update current war data
-    response = requests.get(currentwar_url, headers={'Authorization': 'Bearer ' + token})
+    response = requests.get(apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + token})
     if response.json()["endTime"]:
         if len(clan["wars"])>0 and clan["wars"][0]["endTime"] == response.json()["endTime"]:
             clan["wars"][0] = response.json()
@@ -48,17 +78,17 @@ def update():
     clan["wars"] = trimList(clan["wars"],11)
 
     # Update clan data
-    response = requests.get(clan_url, headers={'Authorization': 'Bearer ' + token})
+    response = requests.get(apiUrls["clan"], headers={'Authorization': 'Bearer ' + token})
     if response.json():
         clan["clan"] = response.json()
         
     # Update warlog data
-    response = requests.get(warlog_url, headers={'Authorization': 'Bearer ' + token})
+    response = requests.get(apiUrls["warlog"], headers={'Authorization': 'Bearer ' + token})
     if response.json():
         clan["warLog"] = response.json()
     
     processResults()
-    write()
+    writeJson(dataFile,clan)
 
 def processResults():    
     members = clan["clan"]["memberList"]
@@ -134,7 +164,8 @@ def processResults():
         m["rank"] = int(donationMod*rank*100)
     
     global page
-    mytemplate = Template(filename='template.html')        
+    content = loadContent()
+    mytemplate = Template(filename=homeTemplate)        
     members.sort(reverse=True, key=sortMembers)    
     page = mytemplate.render(members=members, 
                              content=content, 
@@ -142,22 +173,29 @@ def processResults():
                              warState=clan["warLog"]["currentState"]
                              )
 
-
-def write():
+def writeJson(file,data):
     global clan
-    with open('data/mydata.json', 'w') as f:
-        json.dump(clan, f)
+    with open(file, 'w') as f:
+        json.dump(data, f)
         
-def read():
-    if os.path.exists('data/mydata.json'):
-        f = open('data/mydata.json')
+def readData():
+    if os.path.exists(dataFile):
+        f = open(dataFile)
         return(json.load(f))
     else:
         return({"wars": [], "members": []})
+    
+def readNotes():
+    if os.path.exists(notesDataFile):
+        f = open(notesDataFile)
+        c = json.load(f)
+        return(c["notes"])
+    else:
+        return('hi') 
 
 def loadContent():
-    if os.path.exists('data/content.html'):
-        f = open('data/content.html')
+    if os.path.exists(homeHeader):
+        f = open(homeHeader)
         return(f.readlines())
     else:
         return("")
@@ -171,26 +209,12 @@ def trimList(list, size):
 def sortMembers(e):
     return e["rank"]
 
-clan = read()
-content = loadContent()
-page = ""
-
-update()
-
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=update, trigger="interval", seconds=60)
-scheduler.start()
-# Shut down the scheduler when exiting the app
-atexit.register(lambda: scheduler.shutdown())
-
-app = Flask(__name__)
-SECRET_KEY = os.urandom(32)
-app.config['SECRET_KEY'] = SECRET_KEY
-
 class PostForm(FlaskForm):
     post = TextAreaField('Write something')
     key = StringField()
     submit = SubmitField('Save')
+
+main()
     
 @app.route('/post',methods = ['POST','GET'])
 def post():
@@ -206,25 +230,17 @@ def post():
         form.key.data = key
                        
         if post == "" or not post:      
-            if os.path.exists('data/notes.json'):
-                f = open('data/notes.json')
-                c = json.load(f)
-                form.post.data = c["notes"]
-            else:
-                form.post.data = 'hi'
+            form.post.data = readNotes()
                 
         else:
-            form.post.data = post
-            
+            form.post.data = post    
             notes = {"notes": post}
-            with open('data/notes.json', 'w') as f:
-                json.dump(notes, f)
+            writeJson(notesDataFile, notes)
         
-        return render_template('post/post.html',form=form)
+        return render_template(notesTemplate,form=form)
     
     else:
         return redirect("/", code=302)
-
 
 @app.route("/",methods = ['GET'])
 def hello():

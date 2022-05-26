@@ -1,5 +1,6 @@
 # clash-clan-manager
 
+Requires python3.9
 Add data/config.json
 
 ```
