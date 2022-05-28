@@ -114,6 +114,7 @@ def processResults():
          
         windex=-1
         rank=0
+        lastThreeRank=0
         for w in clan["wars"]:
             if w["state"] == "warEnded":
                 windex += 1
@@ -147,6 +148,10 @@ def processResults():
 
                         else:
                             m["wars"][windex] = -1
+                            
+                        if windex < 2:
+                            lastThreeRank = rank
+                            
                         sortOrder += m["wars"][windex]
         m["sort"] =  sortOrder
         
@@ -162,11 +167,26 @@ def processResults():
             donationMod = 0.90
             
         m["rank"] = int(donationMod*rank*100)
+        m["lastThreeRank"] = int(donationMod*lastThreeRank*100)
     
     global page
     content = loadContent()
     mytemplate = Template(filename=homeTemplate)        
-    members.sort(reverse=True, key=sortMembers)    
+    members.sort(reverse=True, key=sortMembers)
+    
+    lastThreeMembers = members.copy()
+    lastThreeMembers.sort(reverse=True, key=sortMembersLastThree)
+    
+    for i,m in enumerate(members):
+        m["lastThree"] = 0
+        for j,lt in enumerate(lastThreeMembers):
+            if m["tag"] == lt["tag"]:
+                if i > j:
+                    m["lastThree"] = 1
+                elif i < j:
+                    m["lastThree"] = -1
+                break
+        
     page = mytemplate.render(members=members, 
                              content=content, 
                              warlog=clan["warLog"]["items"], 
@@ -208,6 +228,9 @@ def trimList(list, size):
 
 def sortMembers(e):
     return e["rank"]
+
+def sortMembersLastThree(e):
+    return e["lastThreeRank"]
 
 class PostForm(FlaskForm):
     post = TextAreaField('Write something')

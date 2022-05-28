@@ -72,7 +72,12 @@
     % endif
     %endfor
     
-    <td align=center>&nbsp;${member["rank"]}&nbsp;</td> 
+    <td align=center>&nbsp;${member["rank"]}&nbsp;</td>
+    <td valign=center>
+    % if member["lastThree"]==1:
+       <img height=15 src="static/up-arrow.png">&nbsp;
+    % endif
+    </td> 
   </tr>
   %endfor
   
