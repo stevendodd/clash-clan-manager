@@ -48,15 +48,27 @@
   % for i, member in enumerate(members):
 
   % if not i%2:
-  <tr style="background-color:#929292">
+  <tr style="background-color:#525252">
   % else:
   <tr>
   % endif
-    <td valign=center><img height=50% src="${member["league"]["iconUrls"]["tiny"]}"></td> 
+    <td valign="middle"><img height=50% src="${member["league"]["iconUrls"]["tiny"]}"></td> 
     <td style="white-space:nowrap;"><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary">${member["name"]}</a></td>
     <td align=center><img height=30 src="${member["townhallLevel"]}"></td>
     <td style="white-space:nowrap;">${member["role"]}&nbsp;</td>
-    <td style="white-space:nowrap;" align=center>${member["donations"]} / ${member["donationsReceived"]}</td>
+    <td><table cellspacing=0 style="font-size: 0.5em">
+    <tr><td>
+    <table cellspacing=0 style="font-size: 0.5em"><tr><td>
+    % if "warPreference" in member:
+    <img height=10 src="static/${member["warPreference"]}.png">
+    	% if member["warPreference"] == "out":
+    	</td><td valign=middle>${member["dateLastIn"]}</td>
+    	% endif
+    % endif
+    </td></tr></table>
+    </td></tr>
+    <tr><td style="white-space:nowrap;" align=center>${member["donations"]} / ${member["donationsReceived"]}</td></tr>
+	</table></td>
 
     % for w in member["wars"]:
     % if w==0:
@@ -72,8 +84,8 @@
     % endif
     %endfor
     
-    <td align=center>&nbsp;${member["rank"]}&nbsp;</td>
-    <td valign=center>
+    <td align=center>&nbsp;${member["rank"]}</td>
+    <td valign="middle">
     % if member["lastThree"]==1:
        <img height=15 src="static/up-arrow.png">&nbsp;
     % endif

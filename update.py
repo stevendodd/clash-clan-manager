@@ -9,12 +9,14 @@ import json
 import atexit
 import os.path
 import os
+import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 
 token = ""
 clanTag = ""
 notesKey = ""
 page = ""
+updateMember = 0
 
 clan = {}
 apiUrls = {}
@@ -65,7 +67,7 @@ def main():
         exit(str(response) + ": Failed to get clan")
 
 def update():
-    global clan
+    global clan, updateMember
     
     # Update current war data
     response = requests.get(apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + token})
@@ -86,6 +88,38 @@ def update():
     response = requests.get(apiUrls["warlog"], headers={'Authorization': 'Bearer ' + token})
     if response.json():
         clan["warLog"] = response.json()
+    
+    # Update player
+    playerTag = clan["clan"]["memberList"][updateMember]["tag"].strip("#")
+    response = requests.get(apiUrls["player"] + playerTag, headers={'Authorization': 'Bearer ' + token})
+    if response.json():
+        player = response.json()
+        
+        member = {
+            "tag": player["tag"],
+            "townHallLevel": player["townHallLevel"],
+            "warPreference": player["warPreference"]
+        }
+        
+        if member["warPreference"] == "in":
+            member["dateLastIn"] = datetime.datetime.now().strftime("%d %b %y")
+        else:
+            member["dateLastIn"] = ""
+        
+        found = False    
+        for m in clan["members"]:
+            if m["tag"] == member["tag"]:
+                if member["warPreference"] == "out":
+                    member["dateLastIn"] = m["dateLastIn"]
+                m = member.copy()
+                found = True
+        
+        if not found:
+            clan["members"].append(member)
+        
+        updateMember += 1
+        if updateMember == len(clan["clan"]["memberList"]):
+            updateMember = 0
     
     processResults()
     writeJson(dataFile,clan)
@@ -154,6 +188,13 @@ def processResults():
                             
                         sortOrder += m["wars"][windex]
         m["sort"] =  sortOrder
+        
+        for p in clan["members"]:
+            if m["tag"] == p["tag"]:
+                m["townhallLevel"] = "static/townhalls/" + str(p["townHallLevel"]) + ".png"
+                m["warPreference"] = p["warPreference"]
+                m["dateLastIn"] = p["dateLastIn"]
+                break
         
         donationMod = 1
         donationsReceived = m["donationsReceived"]
