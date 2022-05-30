@@ -1,6 +1,58 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style type="text/css">
+.tooltip {
+  position:relative; /* making the .tooltip span a container for the tooltip text */
+  border-bottom:1px dashed #000; /* little indicater to indicate it's hoverable */
+}
+.tooltip:before {
+  content: attr(data-text); /* here's the magic */
+  position:absolute;
+  
+  /* vertically center */
+  top:50%;
+  transform:translateY(-50%);
+  
+  /* move to right */
+  left:100%;
+  margin-left:15px; /* and add a small left margin */
+  
+  /* basic styles */
+  width:100px;
+  padding:10px;
+  border-radius:10px;
+  background:#ccc;
+  color: #000;
+  text-align:center;
+
+  display:none; /* hide by default */
+}
+.tooltip:hover:before {
+  display:block;
+}
+.tooltip:after {
+  content: "";
+  position:absolute;
+  
+  /* position tooltip correctly */
+  left:100%;
+  margin-left:-3px;
+ 
+  /* vertically center */
+  top:50%;
+  transform:translateY(-50%);
+ 
+  /* the arrow */
+  border:10px solid #ccc;
+  border-color: transparent ccc transparent transparent;
+  
+  display:none;
+}
+.tooltip:hover:before, .tooltip:hover:after {
+  display:block;
+}
+  </style>
 </head>
 <body style="background-color:#000000; color:#ffffff; font-family:Verdana;">
 
@@ -52,10 +104,11 @@
   % else:
   <tr>
   % endif
-    <td valign="middle"><img height=50% src="${member["league"]["iconUrls"]["tiny"]}"></td> 
-    <td style="white-space:nowrap;"><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary">${member["name"]}</a></td>
     <td align=center><img height=30 src="${member["townhallLevel"]}"></td>
-    <td style="white-space:nowrap;">${member["role"]}&nbsp;</td>
+    <td valign="middle"><img height=30 src="${member["league"]["iconUrls"]["tiny"]}"></td> 
+    <td style="white-space:nowrap;"><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary">${member["name"]}</a></td>
+    
+    <td style="white-space:nowrap;font-size: 0.8em">(${member["role"]})&nbsp;</td>
     <td><table cellspacing=0 style="font-size: 0.5em">
     <tr><td>
     <table cellspacing=0 style="font-size: 0.5em"><tr><td>
@@ -67,7 +120,8 @@
     % endif
     </td></tr></table>
     </td></tr>
-    <tr><td style="white-space:nowrap;" align=center>${member["donations"]} / ${member["donationsReceived"]}</td></tr>
+    <tr><td class="tooltip" data-text=" Donation modifer: ${member["donationMod"]}" style="white-space:nowrap;" align=center>
+    ${member["donations"]} / ${member["donationsReceived"]}</td></tr>
 	</table></td>
 
     % for w in member["wars"]:
@@ -84,7 +138,7 @@
     % endif
     %endfor
     
-    <td align=center>&nbsp;${member["rank"]}</td>
+    <td align=center style="white-space:nowrap;font-size: 0.8em">&nbsp;${member["rank"]}</td>
     <td valign="middle">
     % if member["lastThree"]==1:
        <img height=15 src="static/up-arrow.png">&nbsp;

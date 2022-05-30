@@ -198,18 +198,28 @@ def processResults():
         
         donationMod = 1
         donationsReceived = m["donationsReceived"]
-        if m["donationsReceived"] == 0:
-            donationsReceived = 1
-            
-        donationMod = m["donations"]/donationsReceived
-        if donationMod > 1.10:
-            donationMod = 1.10
-        elif donationMod < 0.90:
-            donationMod = 0.90
+        donations = m["donations"]
+        
+        if donationsReceived > 200 or donations > 200:
+            if m["donationsReceived"] == 0:
+                donationsReceived = 1
+                if m["donations"] == 0:
+                    donations = 1
+                
+            donationMod = donations/donationsReceived
+            if donationMod > 1.10:
+                donationMod = 1.10
+            elif donationMod < 0.90:
+                donationMod = 0.90
             
         m["rank"] = int(donationMod*rank*100)
         m["lastThreeRank"] = int(donationMod*lastThreeRank*100)
-    
+        donationMod -= 1
+        if donationMod >= 0:
+            m["donationMod"] = "+" + str(round(donationMod*100)) + "%"
+        else:
+            m["donationMod"] = "-" + str(round(donationMod*100*-1)) + "%"
+            
     global page
     content = loadContent()
     mytemplate = Template(filename=homeTemplate)        
