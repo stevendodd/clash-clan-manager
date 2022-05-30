@@ -205,19 +205,19 @@ def processResults():
                 donationsReceived = 1
                 if m["donations"] == 0:
                     donations = 1
-                
-            donationMod = donations/donationsReceived
             
-            if donationsReceived > 500 or donations > 500:
-                if donationMod > 1.10:
-                    donationMod = 1.10
-                elif donationMod < 0.90:
-                    donationMod = 0.90
-            else:
-                if donationMod > 1.05:
-                    donationMod = 1.05
-                elif donationMod < 0.95:
-                    donationMod = 0.95
+            if donationsReceived - donations > 250:
+                donationMod = donations/donationsReceived
+                if donationsReceived > 1000 or donations > 1000:
+                    if donationMod > 1.10:
+                        donationMod = 1.10
+                    elif donationMod < 0.90:
+                        donationMod = 0.90
+                else:
+                    if donationMod > 1.05:
+                        donationMod = 1.05
+                    elif donationMod < 0.95:
+                        donationMod = 0.95
             
         m["rank"] = int(donationMod*rank*100)
         m["lastThreeRank"] = int(donationMod*lastThreeRank*100)
