@@ -4,7 +4,6 @@
   <style type="text/css">
 .tooltip {
   position:relative; /* making the .tooltip span a container for the tooltip text */
-  border-bottom:1px dashed #000; /* little indicater to indicate it's hoverable */
 }
 .tooltip:before {
   content: attr(data-text); /* here's the magic */
@@ -66,11 +65,11 @@
   
   <tr>
   <td valign=center colspan=3>
-  <input type="password" size=15 name="key">
+  <input type="password" size=10 name="key">
   <input type="submit" style="webkit-appearance: none;webkit-border-radius: 0;" height=100% value='Notes'>
   </td>
   <td colspan=2 valign=center align=right style="white-space:nowrap;"> 
-	  <table><tr><td>War Log:&nbsp;</td><td>
+	  <table><tr><td style="white-space:nowrap;font-size: 0.8em">War Log:&nbsp;</td><td>
 	  % if warState != "warEnded":
 	  <table cellpadding=1><tr><td style="background-color:Orange">&nbsp;</td></table>
 	  % else:
@@ -104,7 +103,7 @@
   % else:
   <tr>
   % endif
-    <td align=center><img height=30 src="${member["townhallLevel"]}"></td>
+    <td align=center class="tooltip" data-text="Rank: ${member["rank"]}" style="white-space:nowrap;font-size: 0.5em"><img height=30 src="${member["townhallLevel"]}"></td>
     <td valign="middle"><img height=30 src="${member["league"]["iconUrls"]["tiny"]}"></td> 
     <td style="white-space:nowrap;"><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary">${member["name"]}</a></td>
     
@@ -120,7 +119,7 @@
     % endif
     </td></tr></table>
     </td></tr>
-    <tr><td class="tooltip" data-text=" Donation modifer: ${member["donationMod"]}" style="white-space:nowrap;" align=center>
+    <tr><td class="tooltip" data-text="Donation modifier: ${member["donationMod"]}" style="white-space:nowrap;" align=center>
     ${member["donations"]} / ${member["donationsReceived"]}</td></tr>
 	</table></td>
 
@@ -138,7 +137,7 @@
     % endif
     %endfor
     
-    <td align=center style="white-space:nowrap;font-size: 0.8em">&nbsp;${member["rank"]}</td>
+    <td align=left style="white-space:nowrap;font-size: 0.5em">Avg S: ${member["averageStars"]}<br>Avg D: ${member["averageDestruction"]}</td>
     <td valign="middle">
     % if member["lastThree"]==1:
        <img height=15 src="static/up-arrow.png">&nbsp;

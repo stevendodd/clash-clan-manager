@@ -147,8 +147,7 @@ def processResults():
             m["role"] = "E"
          
         windex=-1
-        rank=0
-        lastThreeRank=0
+        rank = lastThreeRank = stars = attacks = destrution = 0
         for w in clan["wars"]:
             if w["state"] == "warEnded":
                 windex += 1
@@ -174,7 +173,10 @@ def processResults():
                                 if wm["townhallLevel"] < dTownhallLevel:
                                     thm = 1.2
                                 bonus = thm * ((int(a["stars"])*0.1) + (int(a["destructionPercentage"])/400))
-                                                                        
+                                stars += int(a["stars"])
+                                destrution += int(a["destructionPercentage"])
+                                attacks += 1
+                                                                   
                                 if wm["mapPosition"] - dMapPosition > -3:
                                     rank += bonus
                                 else:
@@ -189,6 +191,13 @@ def processResults():
                         sortOrder += m["wars"][windex]
         m["sort"] =  sortOrder
         
+        if attacks > 0:
+            m["averageStars"] = round(stars/attacks,1)
+            m["averageDestruction"] = round(destrution/attacks)
+        else:
+            m["averageStars"] = 0
+            m["averageDestruction"] = 0
+                    
         for p in clan["members"]:
             if m["tag"] == p["tag"]:
                 m["townhallLevel"] = "static/townhalls/" + str(p["townHallLevel"]) + ".png"
