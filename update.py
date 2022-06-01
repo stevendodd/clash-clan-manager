@@ -71,7 +71,7 @@ def update():
     
     # Update current war data
     response = requests.get(apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + token})
-    if response.json()["endTime"]:
+    if "endTime" in response.json():
         if len(clan["wars"])>0 and clan["wars"][0]["endTime"] == response.json()["endTime"]:
             clan["wars"][0] = response.json()
         else:
@@ -219,19 +219,24 @@ def processResults():
                     donationMod = 1.10
                 elif donationMod < 0.90:
                     donationMod = 0.90
-            else:
+            elif donationsReceived > 500 or donations > 500:
                 if donationMod > 1.05:
                     donationMod = 1.05
                 elif donationMod < 0.95:
                     donationMod = 0.95
+            else:
+                if donationMod > 1.025:
+                    donationMod = 1.025
+                elif donationMod < 0.975:
+                    donationMod = 0.975
             
         m["rank"] = int(donationMod*rank*100)
         m["lastThreeRank"] = int(donationMod*lastThreeRank*100)
         donationMod -= 1
         if donationMod >= 0:
-            m["donationMod"] = "+" + str(round(donationMod*100)) + "%"
+            m["donationMod"] = "+" + str(round(donationMod*100,1)) + "%"
         else:
-            m["donationMod"] = "-" + str(round(donationMod*100*-1)) + "%"
+            m["donationMod"] = "-" + str(round(donationMod*100*-1,1)) + "%"
             
     global page
     content = loadContent()
