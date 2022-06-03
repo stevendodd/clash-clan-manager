@@ -9,8 +9,10 @@ import json
 import atexit
 import os.path
 import os
-import datetime
+from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
+from json import loads as json_loads
+from base64 import b64decode as base64_b64decode
 
 token = ""
 clanTag = ""
@@ -37,9 +39,12 @@ def main():
     if os.path.exists(configFile):
         f = open(configFile)
         c = json.load(f)
-        token = c["token"]
+        email = c["email"]
+        password = c["password"]
+        key_name = c["keyName"]
         clanTag = c["clanTag"]
         notesKey = c["key"]
+        token = getToken(email,password,key_name)
     
     apiUrls = {
         "currentwar": "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/currentwar",
@@ -102,7 +107,7 @@ def update():
         }
         
         if member["warPreference"] == "in":
-            member["dateLastIn"] = datetime.datetime.now().strftime("%d %b %y")
+            member["dateLastIn"] = datetime.now().strftime("%d %b %y")
         else:
             member["dateLastIn"] = ""
         
@@ -267,6 +272,72 @@ def writeJson(file,data):
     with open(file, 'w') as f:
         json.dump(data, f)
         
+def getToken(email,password,key_names):
+    key_count = 1
+    keys = _keys = []
+    KEY_MAXIMUM = 10
+    
+    s = requests.Session() 
+    body = {"email": email, "password": password}
+    
+    resp = s.post("https://developer.clashofclans.com/api/login", json=body)
+    if resp.status_code == 403:
+        raise InvalidCredentials(resp)
+    
+    print("Successfully logged into the developer site.")
+    
+    resp_paylaod = resp.json()
+    ip = json_loads(base64_b64decode(resp_paylaod["temporaryAPIToken"].split(".")[1] + "====").decode("utf-8"))["limits"][1]["cidrs"][0].split("/")[0]
+    
+    print("Found IP address to be %s", ip)
+    
+    resp = s.post("https://developer.clashofclans.com/api/apikey/list")
+    if "keys" in resp.json():
+        keys = (resp.json())["keys"]
+        _keys.extend(key["key"] for key in keys if key["name"] == key_names and ip in key["cidrRanges"])
+    
+        print("Retrieved %s valid keys from the developer site.", len(_keys))
+    
+        if len(_keys) < key_count:
+            for key in (k for k in keys if k["name"] == key_names and ip not in k["cidrRanges"]):
+                print(
+                    "Deleting key with the name %s and IP %s (not matching our current IP address).",
+                    key_names, key["cidrRanges"],
+                )
+                s.post("https://developer.clashofclans.com/api/apikey/revoke", json={"id": key["id"]})
+    
+    while len(_keys) < key_count and len(keys) < KEY_MAXIMUM:
+        data = {
+            "name": key_names,
+            "description": "Created on {}".format(datetime.now().strftime("%c")),
+            "cidrRanges": [ip],
+            "scopes": ["clash"],
+        }
+    
+        print("Creating key with data %s.", str(data))
+    
+        resp = s.post("https://developer.clashofclans.com/api/apikey/create", json=data)
+        key = resp.json()
+        print(resp.json())
+        _keys.append(key["key"]["key"])
+    
+    if len(keys) == 10 and len(_keys) < key_count:
+        print("%s keys were requested to be used, but a maximum of %s could be "
+                     "found/made on the developer site, as it has a maximum of 10 keys per account. "
+                     "Please delete some keys or lower your `key_count` level."
+                     "I will use %s keys for the life of this client.",
+                     key_count, len(_keys), len(_keys))
+    
+    if len(_keys) == 0:
+        raise RuntimeError(
+            "There are {} API keys already created and none match a key_name of '{}'."
+            "Please specify a key_name kwarg, or go to 'https://developer.clashofclans.com' to delete "
+            "unused keys.".format(len(keys), key_names)
+        )
+    
+    print("Successfully initialised keys for use.")
+    return(_keys[0])
+
 def readData():
     if os.path.exists(dataFile):
         f = open(dataFile)
