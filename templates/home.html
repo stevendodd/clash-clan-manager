@@ -52,6 +52,7 @@
   display:block;
 }
   </style>
+
 </head>
 <body style="background-color:#000000; color:#ffffff; font-family:Verdana;">
 
@@ -59,13 +60,24 @@
   ${line}
 % endfor
 
+<div id="timeDiv" style="font-size: 0.75em">${lastUpdated}</div>
+ <script type="text/javascript">
+ date = new Date();
+ date.setMinutes(date.getMinutes() + 5);
+ d = Date.parse("${lastUpdated}");
+ if (date < d) {
+   var element = document.getElementById("timeDiv");
+   element.style.color = "#FF0000";
+ }
+ </script>
+  
 <form method="post" action="/post">
 <table cellpadding=2 cellspacing=0 style="font-size: 0.9em">
   <tr><td valign=top><table cellpadding=2 cellspacing=0 >
   
   <tr>
   <td valign=center colspan=3>
-  <input type="password" size=10 name="key">
+  <input type="password" size=14 name="key">
   <input type="submit" style="webkit-appearance: none;webkit-border-radius: 0;" height=100% value='Notes'>
   </td>
   <td colspan=2 valign=center align=right style="white-space:nowrap;"> 

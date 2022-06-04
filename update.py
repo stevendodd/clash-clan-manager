@@ -56,6 +56,10 @@ def main():
         "player": "https://api.clashofclans.com/v1/players/%23"
     }
     
+    response = requests.get(apiUrls["clan"], headers={'Authorization': 'Bearer ' + token})
+    if response.status_code != 200:
+        exit(str(response) + ": Failed to get clan")
+        
     clan = readData()
     update()
     
@@ -66,10 +70,6 @@ def main():
     
     SECRET_KEY = os.urandom(32)
     app.config['SECRET_KEY'] = SECRET_KEY
-
-    response = requests.get(apiUrls["clan"], headers={'Authorization': 'Bearer ' + token})
-    if response.status_code != 200:
-        exit(str(response) + ": Failed to get clan")
 
 def update():
     global clan, updateMember
@@ -88,6 +88,7 @@ def update():
     response = requests.get(apiUrls["clan"], headers={'Authorization': 'Bearer ' + token})
     if response.json():
         clan["clan"] = response.json()
+        clan["lastUpdated"] = datetime.now().strftime("%c")
         
     # Update warlog data
     response = requests.get(apiUrls["warlog"], headers={'Authorization': 'Bearer ' + token})
@@ -264,7 +265,8 @@ def processResults():
     page = mytemplate.render(members=members, 
                              content=content, 
                              warlog=clan["warLog"]["items"], 
-                             warState=clan["warLog"]["currentState"]
+                             warState=clan["warLog"]["currentState"],
+                             lastUpdated=clan["lastUpdated"]
                              )
 
 def writeJson(file,data):
