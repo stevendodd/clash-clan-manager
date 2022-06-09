@@ -211,38 +211,32 @@ def processResults():
                 m["dateLastIn"] = p["dateLastIn"]
                 break
         
-        donationMod = 1
+        donationMod = 0
         donationsReceived = m["donationsReceived"]
         donations = m["donations"]
-            
-        if abs(donationsReceived - donations) > 250:
-            if m["donationsReceived"] == 0:
-                donationsReceived = 1
 
-            donationMod = donations/donationsReceived
-            if donationsReceived > 1000 or donations > 1000:
-                if donationMod > 1.10:
-                    donationMod = 1.10
-                elif donationMod < 0.90:
-                    donationMod = 0.90
-            elif donationsReceived > 500 or donations > 500:
-                if donationMod > 1.05:
-                    donationMod = 1.05
-                elif donationMod < 0.95:
-                    donationMod = 0.95
-            else:
-                if donationMod > 1.025:
-                    donationMod = 1.025
-                elif donationMod < 0.975:
-                    donationMod = 0.975
+        if abs(donationsReceived - donations) > 1500:
+            donationMod = 0.1
+        elif abs(donationsReceived - donations) > 1000:
+            donationMod = 0.075
+        elif abs(donationsReceived - donations) > 500:
+            donationMod = 0.05
+        elif abs(donationsReceived - donations) > 250:
+            donationMod = 0.025
             
-        m["rank"] = int(donationMod*rank*100)
-        m["lastThreeRank"] = int(donationMod*lastThreeRank*100)
-        donationMod -= 1
+        if donations < donationsReceived:
+            donationMod = donationMod * -1
+            
         if donationMod >= 0:
             m["donationMod"] = "+" + str(round(donationMod*100,1)) + "%"
         else:
             m["donationMod"] = "-" + str(round(donationMod*100*-1,1)) + "%"
+
+        donationMod += 1   
+            
+        m["rank"] = int(donationMod*rank*100)
+        m["lastThreeRank"] = int(donationMod*lastThreeRank*100)
+
             
     global page
     content = loadContent()
