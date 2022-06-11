@@ -19,6 +19,8 @@ clanTag = ""
 notesKey = ""
 page = ""
 updateMember = 0
+day = int(datetime.now().strftime("%d"))
+warLeagueEndDay = 5
 
 clan = {}
 apiUrls = {}
@@ -203,18 +205,32 @@ def processResults():
         else:
             m["averageStars"] = 0
             m["averageDestruction"] = 0
-                    
+        
+        prevDonationRec = 0
+        prevDonation = 0
         for p in clan["members"]:
             if m["tag"] == p["tag"]:
                 m["townhallLevel"] = "static/townhalls/" + str(p["townHallLevel"]) + ".png"
                 m["warPreference"] = p["warPreference"]
                 m["dateLastIn"] = p["dateLastIn"]
+                
+                if "prevDonationRec" in p:
+                    prevDonationRec = p["prevDonationRec"]
+                    prevDonation = p["prevDonation"]
+                else:
+                    prevDonationRec = m["donationsReceived"]
+                    prevDonation = m["donations"]
+                
                 break
         
-        donationMod = 0
-        donationsReceived = m["donationsReceived"]
-        donations = m["donations"]
-
+        donationMod = 0        
+        if day > warLeagueEndDay:
+            donationsReceived = m["donationsReceived"]
+            donations = m["donations"]
+        else:
+            donationsReceived = prevDonationRec
+            donations = prevDonation
+            
         if abs(donationsReceived - donations) > 1500:
             donationMod = 0.1
         elif abs(donationsReceived - donations) > 1000:
