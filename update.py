@@ -20,7 +20,7 @@ notesKey = ""
 page = ""
 updateMember = 0
 day = int(datetime.now().strftime("%d"))
-warLeagueEndDay = 5
+warLeagueEndDay = 8
 
 clan = {}
 apiUrls = {}
@@ -55,7 +55,8 @@ def main():
         
         "league": "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/currentwar/leaguegroup",
         "leagueRound": "https://api.clashofclans.com/v1/clanwarleagues/wars/",
-        "player": "https://api.clashofclans.com/v1/players/%23"
+        "player": "https://api.clashofclans.com/v1/players/%23",
+        "season": "https://api.clashofclans.com/v1/goldpass/seasons/current"
     }
     
     response = requests.get(apiUrls["clan"], headers={'Authorization': 'Bearer ' + token})
@@ -75,6 +76,17 @@ def main():
 
 def update():
     global clan, updateMember
+    
+    # Update current Season data
+    response = requests.get(apiUrls["season"], headers={'Authorization': 'Bearer ' + token})
+    if response.json():
+        if "season" in clan:
+            if clan["season"] != response.json():
+                setPreviousDonations()
+                clan["season"] = response.json()
+        else:
+            setPreviousDonations()
+            clan["season"] = response.json()
     
     # Update current war data
     response = requests.get(apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + token})
@@ -206,7 +218,7 @@ def processResults():
             m["averageStars"] = 0
             m["averageDestruction"] = 0
         
-        prevDonationRec = 0
+        prevDonationsReceived = 0
         prevDonation = 0
         for p in clan["members"]:
             if m["tag"] == p["tag"]:
@@ -214,11 +226,11 @@ def processResults():
                 m["warPreference"] = p["warPreference"]
                 m["dateLastIn"] = p["dateLastIn"]
                 
-                if "prevDonationRec" in p:
-                    prevDonationRec = p["prevDonationRec"]
+                if "prevDonationsReceived" in p:
+                    prevDonationsReceived = p["prevDonationsReceived"]
                     prevDonation = p["prevDonation"]
                 else:
-                    prevDonationRec = m["donationsReceived"]
+                    prevDonationsReceived = m["donationsReceived"]
                     prevDonation = m["donations"]
                 
                 break
@@ -228,7 +240,7 @@ def processResults():
             donationsReceived = m["donationsReceived"]
             donations = m["donations"]
         else:
-            donationsReceived = prevDonationRec
+            donationsReceived = prevDonationsReceived
             donations = prevDonation
             
         if abs(donationsReceived - donations) > 1500:
@@ -279,6 +291,16 @@ def processResults():
                              lastUpdated=clan["lastUpdated"]
                              )
 
+def setPreviousDonations():
+    global clan
+    
+    for m in clan["clan"]["memberList"]:
+        for p in clan["members"]:
+            if m["tag"] == p["tag"]:
+                p["prevDonationsReceived"] = m["donationsReceived"]
+                p["prevDonation"]= m["donations"]
+                break        
+    
 def writeJson(file,data):
     global clan
     with open(file, 'w') as f:
