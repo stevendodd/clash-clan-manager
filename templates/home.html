@@ -59,17 +59,6 @@
 % for line in content:
   ${line}
 % endfor
-
-<div id="timeDiv" style="font-size: 0.75em"><a style="color: gold;" href="/static/guidelines.html">Clan rules and information</a> ${lastUpdated}</div>
- <script type="text/javascript">
- date = new Date();
- date.setMinutes(date.getMinutes() + 5);
- d = Date.parse("${lastUpdated}");
- if (date < d) {
-   var element = document.getElementById("timeDiv");
-   element.style.color = "#FF0000";
- }
- </script>
   
 <form method="post" action="/post">
 <table cellpadding=2 cellspacing=0 style="font-size: 0.9em">
@@ -83,9 +72,9 @@
   <td colspan=2 valign=center align=right style="white-space:nowrap;"> 
 	  <table><tr><td style="white-space:nowrap;font-size: 0.8em">War Log:&nbsp;</td><td>
 	  % if warState != "warEnded":
-	  <table cellpadding=1><tr><td style="background-color:Orange">&nbsp;</td></table>
+	  <table cellpadding=0><tr><td style="background-color:Orange">&nbsp;</td></table>
 	  % else:
-	  <table cellpadding=1><tr><td>&nbsp;</td></table>
+	  <table cellpadding=0><tr><td>&nbsp;</td></table>
 	  % endif
 	  </td></tr></table>
   </td>
@@ -96,11 +85,11 @@
 		% if count < 10:
 			<% count += 1 %>
 			% if w["result"]=="win":
-			<td><table cellpadding=1><tr><td style="background-color:MediumSeaGreen">&nbsp;</td></table></td>
+			<td><table cellpadding=0 cellspacing=0><tr><td style="background-color:MediumSeaGreen">&nbsp;</td></table></td>
 			% elif w["result"]=="lose":
-			<td><table cellpadding=1><tr><td style="background-color:Tomato">&nbsp;</td></table></td>
+			<td><table cellpadding=0 cellspacing=0><tr><td style="background-color:Tomato">&nbsp;</td></table></td>
 			% else:
-			<td><table cellpadding=1><tr><td style="background-color:LightGray">&nbsp;</td></table></td>
+			<td><table cellpadding=0 cellspacing=0><tr><td style="background-color:LightGray">&nbsp;</td></table></td>
 			% endif
 		% endif
 		% endif
@@ -137,15 +126,15 @@
 
     % for w in member["wars"]:
     % if w==0:
-    <td><table cellpadding=1><tr><td style="background-color:LightGray">&nbsp;</td></table></td>
+    <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:LightGray">&nbsp;</td></table></td>
     % elif w==1:
-    <td><table cellpadding=1><tr><td style="background-color:Orange">&nbsp;</td></table></td>
+    <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:Orange">&nbsp;</td></table></td>
     % elif w==2:
-    <td><table cellpadding=1><tr><td style="background-color:MediumSeaGreen">&nbsp;</td></table></td>
+    <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:MediumSeaGreen">&nbsp;</td></table></td>
     % elif w==-1:
-    <td><table cellpadding=1><tr><td style="background-color:Tomato">&nbsp;</td></table></td>
+    <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:Tomato">&nbsp;</td></table></td>
     % else:
-    <td><table cellpadding=1><tr><td>${w}</td></table></td>
+    <td><table cellpadding=0 cellspacing=0><tr><td>${w}</td></table></td>
     % endif
     %endfor
     
@@ -162,5 +151,15 @@
   </table>  </form>
   </td></tr>
 </table>
+<div id="timeDiv" style="font-size: 0.75em">${lastUpdated}</div>
+ <script type="text/javascript">
+ date = new Date();
+ date.setMinutes(date.getMinutes() + 5);
+ d = Date.parse("${lastUpdated}");
+ if (date < d) {
+   var element = document.getElementById("timeDiv");
+   element.style.color = "#FF0000";
+ }
+ </script>
 </body>
 </html>
