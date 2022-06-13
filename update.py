@@ -110,36 +110,39 @@ def update():
         clan["warLog"] = response.json()
     
     # Update player
-    playerTag = clan["clan"]["memberList"][updateMember]["tag"].strip("#")
-    response = requests.get(apiUrls["player"] + playerTag, headers={'Authorization': 'Bearer ' + token})
-    if response.json():
-        player = response.json()
-        
-        member = {
-            "tag": player["tag"],
-            "townHallLevel": player["townHallLevel"],
-            "warPreference": player["warPreference"]
-        }
-        
-        if member["warPreference"] == "in":
-            member["dateLastIn"] = datetime.now().strftime("%d %b %y")
-        else:
-            member["dateLastIn"] = ""
-        
-        found = False    
-        for m in clan["members"]:
-            if m["tag"] == member["tag"]:
-                if member["warPreference"] == "out":
-                    member["dateLastIn"] = m["dateLastIn"]
-                m = member.copy()
-                found = True
-        
-        if not found:
-            clan["members"].append(member)
-        
-        updateMember += 1
-        if updateMember == len(clan["clan"]["memberList"]):
-            updateMember = 0
+    for r in range(5):
+        playerTag = clan["clan"]["memberList"][updateMember]["tag"].strip("#")
+        response = requests.get(apiUrls["player"] + playerTag, headers={'Authorization': 'Bearer ' + token})
+        if response.json():
+            player = response.json()
+            
+            member = {
+                "tag": player["tag"],
+                "townHallLevel": player["townHallLevel"],
+                "warPreference": player["warPreference"]
+            }
+            
+            if member["warPreference"] == "in":
+                member["dateLastIn"] = datetime.now().strftime("%d %b %y")
+            else:
+                member["dateLastIn"] = ""
+            
+            found = False    
+            for i,m in enumerate(clan["members"]):
+                if m["tag"] == member["tag"]:
+                    if member["warPreference"] == "out":
+                        member["dateLastIn"] = m["dateLastIn"]
+                    print("Updating " + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
+                    clan["members"][i] = member
+                    found = True
+            
+            if not found:
+                print("Adding " + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
+                clan["members"].append(member)
+            
+            updateMember += 1
+            if updateMember == len(clan["clan"]["memberList"]):
+                updateMember = 0
     
     processResults()
     writeJson(dataFile,clan)
@@ -256,9 +259,9 @@ def processResults():
             donationMod = donationMod * -1
             
         if donationMod >= 0:
-            m["donationMod"] = "+" + str(round(donationMod*100,1)) + "%"
+            m["donationMod"] = "+" + str(donationMod*100) + "%"
         else:
-            m["donationMod"] = "-" + str(round(donationMod*100*-1,1)) + "%"
+            m["donationMod"] = "-" + str(donationMod*100*-1) + "%"
 
         donationMod += 1   
             
@@ -304,7 +307,7 @@ def setPreviousDonations():
 def writeJson(file,data):
     global clan
     with open(file, 'w') as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=2)
         
 def getToken(email,password,key_names):
     key_count = 1
