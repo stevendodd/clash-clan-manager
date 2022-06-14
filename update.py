@@ -90,12 +90,28 @@ def update():
     
     # Update current war data
     response = requests.get(apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + token})
-    if "endTime" in response.json():
-        if len(clan["wars"])>0 and clan["wars"][0]["endTime"] == response.json()["endTime"]:
+    if "preparationStartTime" in response.json():
+        if len(clan["wars"])>0 and clan["wars"][0]["preparationStartTime"] == response.json()["preparationStartTime"]:
             clan["wars"][0] = response.json()
-        else:
+        else:                       
             clan["wars"].insert(0, response.json())
-
+            
+    for i, w in enumerate(clan["wars"]):
+        if w["state"] == "preparation" and i>0:
+            print('delete: ' + clan["wars"][i]['state'])
+            clan["wars"].pop(i)
+        else:
+            if w["state"] == "inWar" and i>0:
+                w["state"] = "warEnded"
+                
+            dateMatch = 'False'
+            if i>0 and clan["wars"][i]['endTime'] == clan["warLog"]["items"][i-1]['endTime']:
+                dateMatch = 'True'
+            else:
+                dateMatch = clan["wars"][i]['endTime'] + " " + clan["warLog"]["items"][i-1]['endTime']
+                
+            print('keep: ' + clan["wars"][i]['state'] + " " + dateMatch)
+            
     clan["wars"] = trimList(clan["wars"],11)
 
     # Update clan data
