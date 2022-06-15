@@ -4,3 +4,4 @@ upload.sh
 data/config.json
 data/mydata.json
 __pycache__
+/test.py

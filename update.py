@@ -27,6 +27,7 @@ apiUrls = {}
 
 configFile = "data/config.json"
 dataFile = "data/mydata.json"
+backupFile = "data/mydata_BK.json"
 notesDataFile = "data/notes.json"
 
 homeHeader = "data/content.html"
@@ -62,8 +63,9 @@ def main():
     response = requests.get(apiUrls["clan"], headers={'Authorization': 'Bearer ' + token})
     if response.status_code != 200:
         exit(str(response) + ": Failed to get clan")
-        
+     
     clan = readData()
+    writeJson(backupFile,clan)
     update()
     
     scheduler = BackgroundScheduler()
@@ -134,12 +136,14 @@ def update():
             
             member = {
                 "tag": player["tag"],
+                "name": player["name"],
                 "townHallLevel": player["townHallLevel"],
-                "warPreference": player["warPreference"]
+                "warPreference": player["warPreference"],
+                "dateLastSeen": datetime.now().strftime("%d %b %y")
             }
             
             if member["warPreference"] == "in":
-                member["dateLastIn"] = datetime.now().strftime("%d %b %y")
+                member["dateLastIn"] = datetime.now().strftime("%d %b")
             else:
                 member["dateLastIn"] = ""
             
@@ -390,7 +394,7 @@ def getToken(email,password,key_names):
     
     print("Successfully initialised keys for use.")
     return(_keys[0])
-
+            
 def readData():
     if os.path.exists(dataFile):
         f = open(dataFile)
