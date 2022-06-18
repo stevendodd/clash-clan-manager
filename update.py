@@ -122,6 +122,9 @@ def update():
         clan["clan"] = response.json()
         clan["lastUpdated"] = datetime.now().strftime("%c")
         
+    response = requests.get(clan["clan"]["badgeUrls"]["small"])
+    open('static/badge.png', 'wb').write(response.content)
+        
     # Update warlog data
     response = requests.get(apiUrls["warlog"], headers={'Authorization': 'Bearer ' + token})
     if response.json():
