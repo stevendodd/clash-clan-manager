@@ -1,0 +1,68 @@
+<!DOCTYPE HTML><html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style type="text/css">
+input[type=submit] {
+    height: 3em;
+}
+</style>
+</head>
+<body style="background-color:#000000; color:#ffffff; font-family:Verdana; font-size: 1em">
+
+
+<table>
+<tr>
+<td><form action="/"><input type="submit" value="Home"></form></td>
+<td><form method="post" action="post"><input type="hidden" name="key" value="{{ key }}"><input type="submit" value="Notes"></form></td>
+</tr>
+</table>
+
+<p>
+<table>
+<tr><td>Red: {% set comma = joiner(",") %}{% for member in members %}{% if "warnings" in member: %}{% if member["warnings"] == 2: %}{{ comma() }} {{ member["name"] }}{% endif %}{% endif %}{% endfor %}
+</td></tr>
+<tr><td>Yellow: {% set comma = joiner(",") %}{% for member in members %}{% if "warnings" in member: %}{% if member["warnings"] == 1: %}{{ comma() }} {{ member["name"] }}{% endif %}{% endif %}{% endfor %}</td></tr>
+</table>
+</p>
+
+<table cellspacing=0>
+{% for member in members %}
+  {% if not loop.index%2: %}
+  <tr style="background-color:#525252">
+  {% else: %}
+  <tr>
+  {% endif %}
+<td nowrap><form method="post">{{ member["form"].player }}{{ member["form"].key }} {{ member["form"].submit(class_="button is-link", height_="100%") }}</form></td>
+
+    {% if "warnings" in member: %}
+      {% if member["warnings"] == 0: %}
+      <td width=2></td>
+      {% elif member["warnings"] == 1: %}
+      <td width=2 style="background-color:Yellow"></td>
+      {%  elif member["warnings"] == 2: %}
+      <td width=2 style="background-color:Tomato"></td>
+      {% else: %}
+      <td width=2 style="background-color:Maroon"></td>
+      {% endif %}
+    {% else: %}
+      <td width=2></td>
+    {% endif %}
+
+<td>&nbsp;{{ member["name"] }}</td>
+<td>
+  <table><tr>
+    {% if "manualWarnings" in member: %}
+      {% for w in member["manualWarnings"]: %}
+      <td><form method="post">{{ w["player"] }}{{ w["key"] }}{{ w["date"] }} {{ w["submit"](class_="button is-link", height_="100%") }}</form></td>
+      {% endfor %}
+    {% endif %}
+  </tr></table>
+</td>
+</tr>
+{% endfor %}
+</table>
+
+
+
+</body></html>

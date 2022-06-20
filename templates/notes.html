@@ -1,5 +1,12 @@
-<!DOCTYPE HTML><html><head>
+<!DOCTYPE HTML><html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
+<style type="text/css">
+input[type=submit] {
+    height: 3em;
+}
+</style>
 <script type="text/javascript" src="{{ url_for('static', filename='tinymce/tinymce.min.js') }}"></script>
 <script type="text/javascript">
     tinymce.init({
@@ -13,19 +20,14 @@
 
 </head>
 <body style="background-color:#000000; color:#ffffff; font-family:Verdana;">
-<form method="post">
 
-<table style="font-size: 2em"><tr><td>
-<a style="color: gold;" href="/">Home</a> &nbsp; 
-
-</td><td>
-<div class="field">
-    <div class="control">
-        {{ form.submit(class_="button is-link", height_="100%") }}
-    </div>
-</div>
-</td></tr></table>
-
+<table>
+<tr>
+<td><form action="/"><input type="submit" value="Home"></form></td>
+<td><form method="post" action="warnings"><input type="hidden" name="key" value="{{ key }}"><input type="submit" value="Warnings"></form></td>
+<td><form method="post">{{ form.submit(class_="button is-link", height_="100%") }}</td>
+</tr>
+</table>
 
 <div class="field">
     <p class="control">

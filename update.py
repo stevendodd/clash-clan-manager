@@ -1,7 +1,7 @@
 from flask import Flask, app
 from flask import request, redirect, render_template
 from flask_wtf import FlaskForm
-from wtforms import (StringField, TextAreaField, SubmitField)
+from wtforms import (StringField, TextAreaField, HiddenField, SubmitField)
 from wtforms.validators import InputRequired, Length
 from mako.template import Template
 import requests
@@ -9,7 +9,8 @@ import json
 import atexit
 import os.path
 import os
-from datetime import datetime
+import time
+from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from json import loads as json_loads
 from base64 import b64decode as base64_b64decode
@@ -33,6 +34,7 @@ notesDataFile = "data/notes.json"
 homeHeader = "data/content.html"
 homeTemplate = "templates/home.html"
 notesTemplate = "notes.html"
+warningTemplate = "warning.html"
 
 app = Flask(__name__)
 
@@ -66,6 +68,7 @@ def main():
      
     clan = readData()
     writeJson(backupFile,clan)
+    clan["updateLock"] = False
     update()
     
     scheduler = BackgroundScheduler()
@@ -75,10 +78,11 @@ def main():
     
     SECRET_KEY = os.urandom(32)
     app.config['SECRET_KEY'] = SECRET_KEY
-
-def update():
-    global clan, updateMember
     
+def update():
+    global clan, updateMember   
+    obtainLock()
+        
     # Update current Season data
     response = requests.get(apiUrls["season"], headers={'Authorization': 'Bearer ' + token})
     if response.json():
@@ -142,22 +146,26 @@ def update():
                 "name": player["name"],
                 "townHallLevel": player["townHallLevel"],
                 "warPreference": player["warPreference"],
+                "dateLastIn": "",
                 "dateLastSeen": datetime.now().strftime("%d %b %y")
             }
             
             if member["warPreference"] == "in":
-                member["dateLastIn"] = datetime.now().strftime("%d %b")
-            else:
-                member["dateLastIn"] = ""
+                member["dateLastIn"] = datetime.now().strftime("%d %b")                
             
             found = False    
             for i,m in enumerate(clan["members"]):
                 if m["tag"] == member["tag"]:
                     if member["warPreference"] == "out":
                         member["dateLastIn"] = m["dateLastIn"]
+                        
+                    if "warnings" in m:
+                        member["warnings"] = m["warnings"]
+                        
                     print("Updating " + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
                     clan["members"][i] = member
                     found = True
+                    break
             
             if not found:
                 print("Adding " + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
@@ -169,6 +177,7 @@ def update():
     
     processResults()
     writeJson(dataFile,clan)
+    releaseLock()
 
 def processResults():    
     members = clan["clan"]["memberList"]
@@ -181,8 +190,9 @@ def processResults():
     for m in members:
         sortOrder = 0
         m["townhallLevel"] = ""
-        m["wars"] = [0,0,0,0,0,0,0,0,0,0]
-        
+        m["wars"] = [0,0,0,0,0,0,0,0,0,0,0]
+        m["attackWarnings"] = 0
+    
         if m["role"] == "leader":
             m["role"] = "L"
         elif m["role"] == "member":
@@ -231,6 +241,11 @@ def processResults():
                         else:
                             m["wars"][windex] = -1
                             
+                            wdate = datetime.strptime(w["endTime"], '%Y%m%dT%H%M%S.000Z')
+                            if datetime.now() < wdate + timedelta(days=7):
+                                if "attackWarnings" in m:
+                                    m["attackWarnings"] += 1                                    
+                            
                         if windex < 2:
                             lastThreeRank = rank
                             
@@ -251,6 +266,21 @@ def processResults():
                 m["townhallLevel"] = "static/townhalls/" + str(p["townHallLevel"]) + ".png"
                 m["warPreference"] = p["warPreference"]
                 m["dateLastIn"] = p["dateLastIn"]
+                             
+                if "warnings" in p:                
+                    removeDates = []
+                    for w in p["warnings"]:
+                        wdate = datetime.strptime(w, '%Y%m%dT%H%M')
+                        if datetime.now() > wdate + timedelta(days=7):
+                            removeDates.append(w)
+                            print("Removing warning: " + m["name"] + " " + datetime.now().strftime('%Y%m%dT%H%M') + "> " + wdate.strftime('%Y%m%dT%H%M'))
+                            
+                    for w in removeDates:
+                        p["warnings"].remove(w)                
+                
+                    m["warnings"] = m["attackWarnings"] + len(p["warnings"])
+                else:
+                    m["warnings"] = m["attackWarnings"]
                 
                 if "prevDonationsReceived" in p:
                     prevDonationsReceived = p["prevDonationsReceived"]
@@ -299,7 +329,7 @@ def processResults():
     
     lastThreeMembers = members.copy()
     lastThreeMembers.sort(reverse=True, key=sortMembersLastThree)
-    
+        
     for i,m in enumerate(members):
         m["lastThree"] = 0
         for j,lt in enumerate(lastThreeMembers):
@@ -397,7 +427,15 @@ def getToken(email,password,key_names):
     
     print("Successfully initialised keys for use.")
     return(_keys[0])
-            
+
+def obtainLock():
+    while clan["updateLock"]:
+        time.sleep(1)
+    clan["updateLock"] = True
+
+def releaseLock():
+    clan["updateLock"] = False
+    
 def readData():
     if os.path.exists(dataFile):
         f = open(dataFile)
@@ -434,10 +472,83 @@ def sortMembersLastThree(e):
 
 class PostForm(FlaskForm):
     post = TextAreaField('Write something')
-    key = StringField()
+    key = HiddenField()
     submit = SubmitField('Save')
+    
+class addWarningForm(FlaskForm):
+    key = HiddenField()
+    player = HiddenField()
+    submit = SubmitField('Add Warning')
+
+class deleteWarningForm(FlaskForm):
+    key = HiddenField()
+    player = HiddenField()
+    date = HiddenField()
+    submit = SubmitField('Delete Warning')
 
 main()
+
+@app.route('/warnings',methods = ['POST','GET'])
+def warnings():
+    global clan
+    
+    key = player = toggle = ""
+    player = request.form.get('player')
+    date = request.form.get('date')
+    key = request.form.get('key')
+    
+    if key == notesKey:
+        obtainLock()
+        members = clan["clan"]["memberList"]
+                           
+        if player != None:
+            for m in clan["members"]:
+                if m["tag"] == player:
+                    if date is None:
+                        wdate = datetime.now().strftime("%Y%m%dT%H%M")
+                        if "warnings" in m:
+                            m["warnings"].append(wdate)
+                        else:
+                            m["warnings"] = [wdate]
+                        print("Add Warning " + m["name"])
+                        
+                    else:
+                        for i, w in enumerate(m["warnings"]):
+                            if w == date:
+                                m["warnings"].pop(i)
+                                break
+                        
+            for m in members:
+                if m["tag"] == player:
+                    if date is None:
+                        m["warnings"] += 1
+                    else:
+                        m["warnings"] -= 1
+                    
+        for m in members:
+            form = addWarningForm()
+            form.key.data = key
+            form.player.data = m["tag"]
+            m["form"] = form
+            warnings = []
+            for p in clan["members"]:
+                if m["tag"] == p["tag"]:
+                    if "warnings" in p:
+                        for w in p["warnings"]:
+                            warningForm = deleteWarningForm()
+                            warningForm.key.data = key
+                            warningForm.player.data = m["tag"]
+                            warningForm.date.data = w
+                            warningForm.submit.label.text = w
+                            warnings.append(warningForm)
+                        m["manualWarnings"] = warnings
+                    break
+        
+        releaseLock()
+        return render_template(warningTemplate,members=members,key=key)
+    
+    else:
+        return redirect("/", code=302)
     
 @app.route('/post',methods = ['POST','GET'])
 def post():
@@ -460,7 +571,7 @@ def post():
             notes = {"notes": post}
             writeJson(notesDataFile, notes)
         
-        return render_template(notesTemplate,form=form)
+        return render_template(notesTemplate,form=form,key=key)
     
     else:
         return redirect("/", code=302)

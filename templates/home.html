@@ -67,7 +67,7 @@
   <tr><td valign=top><table cellpadding=2 cellspacing=0 >
   
   <tr>
-  <td valign=center colspan=3>
+  <td valign=center colspan=4>
   <input type="password" size=14 name="key">
   <input type="submit" style="webkit-appearance: none;webkit-border-radius: 0;" height=100% value='Notes'>
   </td>
@@ -106,6 +106,21 @@
   % else:
   <tr>
   % endif
+  
+    % if "warnings" in member:
+      % if member["warnings"] == 0:
+      <td width=2></td>
+      % elif member["warnings"] == 1:
+      <td width=2 style="background-color:Yellow"></td>
+      %  elif member["warnings"] == 2:
+      <td width=2 style="background-color:Tomato"></td>
+      % else:
+      <td width=2 style="background-color:Maroon"></td>
+      % endif
+    % else:
+      <td width=2></td>
+    % endif
+  
     <td align=center class="tooltip" data-text="Rank: ${member["rank"]}" style="white-space:nowrap;font-size: 0.5em"><img height=30 src="${member["townhallLevel"]}"></td>
     <td valign="middle"><img height=30 src="${member["league"]["iconUrls"]["tiny"]}"></td> 
     <td style="white-space:nowrap;"><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary">${member["name"]}</a></td>
@@ -145,7 +160,7 @@
     % if member["lastThree"]==1:
        <img height=15 src="static/up-arrow.png">&nbsp;
     % endif
-    </td> 
+    </td>
   </tr>
   %endfor
   
