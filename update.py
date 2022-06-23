@@ -527,10 +527,12 @@ def warnings():
             form.key.data = key
             form.player.data = m["tag"]
             m["form"] = form
+            m["performanceWarning"] = False
             warnings = []
             for p in clan["members"]:
                 if m["tag"] == p["tag"]:
                     if "warnings" in p:
+                        m["performanceWarning"] = True
                         for w in p["warnings"]:
                             warningForm = deleteWarningForm()
                             warningForm.key.data = key

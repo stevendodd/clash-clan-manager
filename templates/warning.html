@@ -23,6 +23,8 @@ input[type=submit] {
 <tr><td>Red: {% set comma = joiner(",") %}{% for member in members %}{% if "warnings" in member: %}{% if member["warnings"] == 2: %}{{ comma() }} {{ member["name"] }}{% endif %}{% endif %}{% endfor %}
 </td></tr>
 <tr><td>Yellow: {% set comma = joiner(",") %}{% for member in members %}{% if "warnings" in member: %}{% if member["warnings"] == 1: %}{{ comma() }} {{ member["name"] }}{% endif %}{% endif %}{% endfor %}</td></tr>
+<tr><td>Need to improve: {% set comma = joiner(",") %}{% for member in members %}{% if member["performanceWarning"]: %}{{ comma() }} {{ member["name"] }}{% endif %}{% endfor %}</td></tr>
+
 </table>
 </p>
 
