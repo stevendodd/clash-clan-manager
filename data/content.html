@@ -1,3 +1,5 @@
+
+
 <table>
 <tr><td>
   <table cellspacing=0 cellpadding=0><tr><td>
@@ -7,7 +9,12 @@
    <b style="font-size: 1.75em">Boom Boom Clan Manager</b>
    </td></tr>
   </table>
-<img src="static/banner.png" alt="Clash of Clans Clan Manager" width=95%>
+<img id="banner" src="static/banner1.png" alt="Clash of Clans Clan Manager" width=95%>
+<script type="text/javascript">
+var myPix = new Array("static/banner1.png","static/banner2.png","static/banner3.png","static/banner4.png","static/banner5.png","static/banner6.png");
+var randomNum = Math.floor(Math.random() * myPix.length);
+document.getElementById("banner").src = myPix[randomNum];
+</script>
 <p>Apply to join <a style="color: gold;" href="https://link.clashofclans.com/en?action=OpenClanProfile&tag=QVCJLCP">in-game</a> | <a style="color: gold;" href="/static/guidelines.html">Clan rules and information</a>
 </td></tr>
 <tr><td>

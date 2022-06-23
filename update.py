@@ -109,17 +109,14 @@ def update():
         else:
             if w["state"] == "inWar" and i>0:
                 w["state"] = "warEnded"
-                
-            dateMatch = 'False'
-            if i>0 and clan["wars"][i]['endTime'] == clan["warLog"]["items"][i-1]['endTime']:
-                dateMatch = 'True'
-            else:
-                dateMatch = clan["wars"][i]['endTime'] + " " + clan["warLog"]["items"][i-1]['endTime']
-                
-            print('keep: ' + clan["wars"][i]['state'] + " " + dateMatch)
-            
-    clan["wars"] = trimList(clan["wars"],11)
-
+                   
+            print('keep: ' + clan["wars"][i]['state'] + " " + clan["wars"][i]['endTime'])
+    
+    if clan["wars"][0]['state'] != "warEnded":       
+        clan["wars"] = trimList(clan["wars"],11)
+    else:
+        clan["wars"] = trimList(clan["wars"],10)
+        
     # Update clan data
     response = requests.get(apiUrls["clan"], headers={'Authorization': 'Bearer ' + token})
     if response.json():
@@ -190,7 +187,7 @@ def processResults():
     for m in members:
         sortOrder = 0
         m["townhallLevel"] = ""
-        m["wars"] = [0,0,0,0,0,0,0,0,0,0,0]
+        m["wars"] = [0,0,0,0,0,0,0,0,0,0]
         m["attackWarnings"] = 0
     
         if m["role"] == "leader":
