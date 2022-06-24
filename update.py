@@ -433,7 +433,7 @@ def obtainLock():
         time.sleep(1)
         count += 1
         
-        if count > 1:
+        if count > 10:
             raise Exception("Couldn't obtain lock")
             return False
         
