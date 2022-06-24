@@ -81,100 +81,102 @@ def main():
     
 def update():
     global clan, updateMember   
-    obtainLock()
-        
-    # Update current Season data
-    response = requests.get(apiUrls["season"], headers={'Authorization': 'Bearer ' + token})
-    if response.json():
-        if "season" in clan:
-            if clan["season"] != response.json():
-                setPreviousDonations()
-                clan["season"] = response.json()
-        else:
-            setPreviousDonations()
-            clan["season"] = response.json()
     
-    # Update current war data
-    response = requests.get(apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + token})
-    if "preparationStartTime" in response.json():
-        if len(clan["wars"])>0 and clan["wars"][0]["preparationStartTime"] == response.json()["preparationStartTime"]:
-            clan["wars"][0] = response.json()
-        else:                       
-            clan["wars"].insert(0, response.json())
+    if obtainLock():
+        try:
+            # Update current Season data
+            response = requests.get(apiUrls["season"], headers={'Authorization': 'Bearer ' + token})
+            if response.json():
+                if "season" in clan:
+                    if clan["season"] != response.json():
+                        setPreviousDonations()
+                        clan["season"] = response.json()
+                else:
+                    setPreviousDonations()
+                    clan["season"] = response.json()
             
-    for i, w in enumerate(clan["wars"]):
-        if w["state"] == "preparation" and i>0:
-            print('delete: ' + clan["wars"][i]['state'])
-            clan["wars"].pop(i)
-        else:
-            if w["state"] == "inWar" and i>0:
-                w["state"] = "warEnded"
-                   
-            print('keep: ' + clan["wars"][i]['state'] + " " + clan["wars"][i]['endTime'])
-    
-    if clan["wars"][0]['state'] != "warEnded":       
-        clan["wars"] = trimList(clan["wars"],11)
-    else:
-        clan["wars"] = trimList(clan["wars"],10)
-        
-    # Update clan data
-    response = requests.get(apiUrls["clan"], headers={'Authorization': 'Bearer ' + token})
-    if response.json():
-        clan["clan"] = response.json()
-        clan["lastUpdated"] = datetime.now().strftime("%c")
-        
-    response = requests.get(clan["clan"]["badgeUrls"]["small"])
-    open('static/badge.png', 'wb').write(response.content)
-        
-    # Update warlog data
-    response = requests.get(apiUrls["warlog"], headers={'Authorization': 'Bearer ' + token})
-    if response.json():
-        clan["warLog"] = response.json()
-    
-    # Update player
-    for r in range(5):
-        playerTag = clan["clan"]["memberList"][updateMember]["tag"].strip("#")
-        response = requests.get(apiUrls["player"] + playerTag, headers={'Authorization': 'Bearer ' + token})
-        if response.json():
-            player = response.json()
+            # Update current war data
+            response = requests.get(apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + token})
+            if "preparationStartTime" in response.json():
+                if len(clan["wars"])>0 and clan["wars"][0]["preparationStartTime"] == response.json()["preparationStartTime"]:
+                    clan["wars"][0] = response.json()
+                else:                       
+                    clan["wars"].insert(0, response.json())
+                    
+            for i, w in enumerate(clan["wars"]):
+                if w["state"] == "preparation" and i>0:
+                    print('delete: ' + clan["wars"][i]['state'])
+                    clan["wars"].pop(i)
+                else:
+                    if w["state"] == "inWar" and i>0:
+                        w["state"] = "warEnded"
+                           
+                    print('keep: ' + clan["wars"][i]['state'] + " " + clan["wars"][i]['endTime'])
             
-            member = {
-                "tag": player["tag"],
-                "name": player["name"],
-                "townHallLevel": player["townHallLevel"],
-                "warPreference": player["warPreference"],
-                "dateLastIn": "",
-                "dateLastSeen": datetime.now().strftime("%d %b %y")
-            }
+            if clan["wars"][0]['state'] != "warEnded":       
+                clan["wars"] = trimList(clan["wars"],11)
+            else:
+                clan["wars"] = trimList(clan["wars"],10)
+                
+            # Update clan data
+            response = requests.get(apiUrls["clan"], headers={'Authorization': 'Bearer ' + token})
+            if response.json():
+                clan["clan"] = response.json()
+                clan["lastUpdated"] = datetime.now().strftime("%c")
+                
+            response = requests.get(clan["clan"]["badgeUrls"]["small"])
+            open('static/badge.png', 'wb').write(response.content)
+                
+            # Update warlog data
+            response = requests.get(apiUrls["warlog"], headers={'Authorization': 'Bearer ' + token})
+            if response.json():
+                clan["warLog"] = response.json()
             
-            if member["warPreference"] == "in":
-                member["dateLastIn"] = datetime.now().strftime("%d %b")                
+            # Update player
+            for r in range(5):
+                playerTag = clan["clan"]["memberList"][updateMember]["tag"].strip("#")
+                response = requests.get(apiUrls["player"] + playerTag, headers={'Authorization': 'Bearer ' + token})
+                if response.json():
+                    player = response.json()
+                    
+                    member = {
+                        "tag": player["tag"],
+                        "name": player["name"],
+                        "townHallLevel": player["townHallLevel"],
+                        "warPreference": player["warPreference"],
+                        "dateLastIn": "",
+                        "dateLastSeen": datetime.now().strftime("%d %b %y")
+                    }
+                    
+                    if member["warPreference"] == "in":
+                        member["dateLastIn"] = datetime.now().strftime("%d %b")                
+                    
+                    found = False    
+                    for i,m in enumerate(clan["members"]):
+                        if m["tag"] == member["tag"]:
+                            if member["warPreference"] == "out":
+                                member["dateLastIn"] = m["dateLastIn"]
+                                
+                            if "warnings" in m:
+                                member["warnings"] = m["warnings"]
+                                
+                            print("Updating " + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
+                            clan["members"][i] = member
+                            found = True
+                            break
+                    
+                    if not found:
+                        print("Adding " + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
+                        clan["members"].append(member)
+                    
+                    updateMember += 1
+                    if updateMember == len(clan["clan"]["memberList"]):
+                        updateMember = 0
             
-            found = False    
-            for i,m in enumerate(clan["members"]):
-                if m["tag"] == member["tag"]:
-                    if member["warPreference"] == "out":
-                        member["dateLastIn"] = m["dateLastIn"]
-                        
-                    if "warnings" in m:
-                        member["warnings"] = m["warnings"]
-                        
-                    print("Updating " + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
-                    clan["members"][i] = member
-                    found = True
-                    break
-            
-            if not found:
-                print("Adding " + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
-                clan["members"].append(member)
-            
-            updateMember += 1
-            if updateMember == len(clan["clan"]["memberList"]):
-                updateMember = 0
-    
-    processResults()
-    writeJson(dataFile,clan)
-    releaseLock()
+            processResults()
+            writeJson(dataFile,clan)
+        finally:
+            releaseLock()
 
 def processResults():    
     members = clan["clan"]["memberList"]
@@ -426,9 +428,17 @@ def getToken(email,password,key_names):
     return(_keys[0])
 
 def obtainLock():
+    count = 0
     while clan["updateLock"]:
         time.sleep(1)
+        count += 1
+        
+        if count > 1:
+            raise Exception("Couldn't obtain lock")
+            return False
+        
     clan["updateLock"] = True
+    return True
 
 def releaseLock():
     clan["updateLock"] = False
@@ -495,55 +505,59 @@ def warnings():
     key = request.form.get('key')
     
     if key == notesKey:
-        obtainLock()
-        members = clan["clan"]["memberList"]
-                           
-        if player != None:
-            for m in clan["members"]:
-                if m["tag"] == player:
-                    if date is None:
-                        wdate = datetime.now().strftime("%Y%m%dT%H%M")
-                        if "warnings" in m:
-                            m["warnings"].append(wdate)
-                        else:
-                            m["warnings"] = [wdate]
-                        print("Add Warning " + m["name"])
-                        
-                    else:
-                        for i, w in enumerate(m["warnings"]):
-                            if w == date:
-                                m["warnings"].pop(i)
-                                break
-                        
-            for m in members:
-                if m["tag"] == player:
-                    if date is None:
-                        m["warnings"] += 1
-                    else:
-                        m["warnings"] -= 1
-                    
-        for m in members:
-            form = addWarningForm()
-            form.key.data = key
-            form.player.data = m["tag"]
-            m["form"] = form
-            m["performanceWarning"] = False
-            warnings = []
-            for p in clan["members"]:
-                if m["tag"] == p["tag"]:
-                    if "warnings" in p:
-                        m["performanceWarning"] = True
-                        for w in p["warnings"]:
-                            warningForm = deleteWarningForm()
-                            warningForm.key.data = key
-                            warningForm.player.data = m["tag"]
-                            warningForm.date.data = w
-                            warningForm.submit.label.text = w
-                            warnings.append(warningForm)
-                        m["manualWarnings"] = warnings
-                    break
-        
-        releaseLock()
+        if obtainLock():     
+            try:
+                
+                members = clan["clan"]["memberList"]
+                                   
+                if player != None:
+                    for m in clan["members"]:
+                        if m["tag"] == player:
+                            if date is None:
+                                wdate = datetime.now().strftime("%Y%m%dT%H%M")
+                                if "warnings" in m:
+                                    m["warnings"].append(wdate)
+                                else:
+                                    m["warnings"] = [wdate]
+                                print("Add Warning " + m["name"])
+                                
+                            else:
+                                for i, w in enumerate(m["warnings"]):
+                                    if w == date:
+                                        m["warnings"].pop(i)
+                                        break
+                                
+                    for m in members:
+                        if m["tag"] == player:
+                            if date is None:
+                                m["warnings"] += 1
+                            else:
+                                m["warnings"] -= 1
+                            
+                for m in members:
+                    form = addWarningForm()
+                    form.key.data = key
+                    form.player.data = m["tag"]
+                    m["form"] = form
+                    m["performanceWarning"] = False
+                    warnings = []
+                    for p in clan["members"]:
+                        if m["tag"] == p["tag"]:
+                            if "warnings" in p:
+                                for w in p["warnings"]:
+                                    warningForm = deleteWarningForm()
+                                    warningForm.key.data = key
+                                    warningForm.player.data = m["tag"]
+                                    warningForm.date.data = w
+                                    warningForm.submit.label.text = w
+                                    warnings.append(warningForm)
+                                m["manualWarnings"] = warnings
+                                if len(warnings)>0:
+                                    m["performanceWarning"] = True
+                            break
+            finally:
+                releaseLock()
+            
         return render_template(warningTemplate,members=members,key=key)
     
     else:
