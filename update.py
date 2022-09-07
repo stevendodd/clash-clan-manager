@@ -10,10 +10,13 @@ import atexit
 import os.path
 import os
 import time
+import logging
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from json import loads as json_loads
 from base64 import b64decode as base64_b64decode
+from logging.handlers import RotatingFileHandler
+from logging.config import dictConfig
 
 token = ""
 clanTag = ""
@@ -35,6 +38,37 @@ homeHeader = "data/content.html"
 homeTemplate = "templates/home.html"
 notesTemplate = "notes.html"
 warningTemplate = "warning.html"
+
+logfile = '/data/clanManager.log'
+
+dictConfig(
+            {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'formatters': {
+            'default': {
+                        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+                       },
+            'simpleformatter' : {
+                        'format' : '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            }
+    },
+    'handlers':
+    {
+        'custom_handler': {
+            'class' : 'logging.handlers.RotatingFileHandler',
+            'formatter': 'default',
+            'filename' : logfile,
+            'level': 'DEBUG',
+            'maxBytes': 10000000, 
+            'backupCount': 5
+        }
+    },
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ['custom_handler']
+    },
+})
 
 app = Flask(__name__)
 
@@ -86,7 +120,7 @@ def update():
         try:
             # Update current Season data
             response = requests.get(apiUrls["season"], headers={'Authorization': 'Bearer ' + token})
-            if response.json():
+            if response.status_code == 200 and response.json():
                 if "season" in clan:
                     if clan["season"] != response.json():
                         setPreviousDonations()
@@ -97,7 +131,7 @@ def update():
             
             # Update current war data
             response = requests.get(apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + token})
-            if "preparationStartTime" in response.json():
+            if response.status_code == 200 and "preparationStartTime" in response.json():
                 if len(clan["wars"])>0 and clan["wars"][0]["preparationStartTime"] == response.json()["preparationStartTime"]:
                     clan["wars"][0] = response.json()
                 else:                       
@@ -105,13 +139,13 @@ def update():
                     
             for i, w in enumerate(clan["wars"]):
                 if w["state"] == "preparation" and i>0:
-                    print('delete: ' + clan["wars"][i]['state'])
+                    app.logger.debug('delete: ' + clan["wars"][i]['state'])
                     clan["wars"].pop(i)
                 else:
                     if w["state"] == "inWar" and i>0:
                         w["state"] = "warEnded"
                            
-                    print('keep: ' + clan["wars"][i]['state'] + " " + clan["wars"][i]['endTime'])
+                    app.logger.debug('keep: ' + clan["wars"][i]['state'] + " " + clan["wars"][i]['endTime'])
             
             if clan["wars"][0]['state'] != "warEnded":       
                 clan["wars"] = trimList(clan["wars"],11)
@@ -120,7 +154,7 @@ def update():
                 
             # Update clan data
             response = requests.get(apiUrls["clan"], headers={'Authorization': 'Bearer ' + token})
-            if response.json():
+            if response.status_code == 200 and response.json():
                 clan["clan"] = response.json()
                 clan["lastUpdated"] = datetime.now().strftime("%c")
                 
@@ -129,14 +163,17 @@ def update():
                 
             # Update warlog data
             response = requests.get(apiUrls["warlog"], headers={'Authorization': 'Bearer ' + token})
-            if response.json():
+            if response.status_code == 200 and response.json():
                 clan["warLog"] = response.json()
             
             # Update player
             for r in range(5):
+                if updateMember >= len(clan["clan"]["memberList"]):
+                        updateMember = 0
+                        
                 playerTag = clan["clan"]["memberList"][updateMember]["tag"].strip("#")
                 response = requests.get(apiUrls["player"] + playerTag, headers={'Authorization': 'Bearer ' + token})
-                if response.json():
+                if response.status_code == 200 and response.json():
                     player = response.json()
                     
                     member = {
@@ -160,18 +197,22 @@ def update():
                             if "warnings" in m:
                                 member["warnings"] = m["warnings"]
                                 
-                            print("Updating " + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
+                            if "prevDonationsReceived" in m:
+                                member["prevDonationsReceived"] = m["prevDonationsReceived"]
+                                
+                            if "prevDonation" in m:
+                                member["prevDonation"] = m["prevDonation"]
+                                
+                            app.logger.debug("Updating " + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
                             clan["members"][i] = member
                             found = True
                             break
                     
                     if not found:
-                        print("Adding " + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
+                        app.logger.debug("Adding " + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
                         clan["members"].append(member)
                     
                     updateMember += 1
-                    if updateMember == len(clan["clan"]["memberList"]):
-                        updateMember = 0
             
             processResults()
             writeJson(dataFile,clan)
@@ -202,7 +243,7 @@ def processResults():
             m["role"] = "E"
          
         windex=-1
-        rank = lastThreeRank = stars = attacks = destrution = 0
+        rank = lastThreeRank = stars = attacks = destrution = missedAttackCounter = 0
         for w in clan["wars"]:
             if w["state"] == "warEnded":
                 windex += 1
@@ -214,6 +255,15 @@ def processResults():
                         if "attacks" in wm:
                             m["wars"][windex] = len(wm["attacks"])
                             rank += m["wars"][windex]
+                            
+                            if len(wm["attacks"]) == 1:
+                                wdate = datetime.strptime(w["endTime"], '%Y%m%dT%H%M%S.000Z')
+                                if datetime.now() < wdate + timedelta(days=7):
+                                    missedAttackCounter +=1
+                                    
+                                    if missedAttackCounter == 2:
+                                        missedAttackCounter = 0
+                                        m["attackWarnings"] += 1                                   
                             
                             for a in wm["attacks"]:
                                 dTownhallLevel = 0
@@ -242,8 +292,7 @@ def processResults():
                             
                             wdate = datetime.strptime(w["endTime"], '%Y%m%dT%H%M%S.000Z')
                             if datetime.now() < wdate + timedelta(days=7):
-                                if "attackWarnings" in m:
-                                    m["attackWarnings"] += 1                                    
+                                m["attackWarnings"] += 1                                    
                             
                         if windex < 2:
                             lastThreeRank = rank
@@ -272,7 +321,7 @@ def processResults():
                         wdate = datetime.strptime(w, '%Y%m%dT%H%M')
                         if datetime.now() > wdate + timedelta(days=7):
                             removeDates.append(w)
-                            print("Removing warning: " + m["name"] + " " + datetime.now().strftime('%Y%m%dT%H%M') + "> " + wdate.strftime('%Y%m%dT%H%M'))
+                            app.logger.debug("Removing warning: " + m["name"] + " " + datetime.now().strftime('%Y%m%dT%H%M') + "> " + wdate.strftime('%Y%m%dT%H%M'))
                             
                     for w in removeDates:
                         p["warnings"].remove(w)                
@@ -285,18 +334,26 @@ def processResults():
                     prevDonationsReceived = p["prevDonationsReceived"]
                     prevDonation = p["prevDonation"]
                 else:
-                    prevDonationsReceived = m["donationsReceived"]
-                    prevDonation = m["donations"]
-                
+                    p["prevDonationsReceived"] = prevDonationsReceived = m["donationsReceived"]
+                    p["prevDonation"] = prevDonation = m["donations"]
+                    
+                if m["donationsReceived"] >= p["prevDonationsReceived"] and m["donations"] >= p["prevDonation"]:
+                    p["prevDonationsReceived"] = m["donationsReceived"]
+                    p["prevDonation"] = m["donations"]
+                    
+                if day > warLeagueEndDay and day < warLeagueEndDay + 5:
+                    p["prevDonationsReceived"] = 0
+                    p["prevDonation"] = 0
+                    
                 break
         
         donationMod = 0        
-        if day > warLeagueEndDay:
-            donationsReceived = m["donationsReceived"]
-            donations = m["donations"]
-        else:
+        if prevDonationsReceived > m["donationsReceived"] or prevDonation > m["donations"]:
             donationsReceived = prevDonationsReceived
             donations = prevDonation
+        else:
+            donationsReceived = m["donationsReceived"]
+            donations = m["donations"]
             
         if abs(donationsReceived - donations) > 1500:
             donationMod = 0.1
@@ -373,23 +430,23 @@ def getToken(email,password,key_names):
     if resp.status_code == 403:
         raise InvalidCredentials(resp)
     
-    print("Successfully logged into the developer site.")
+    app.logger.debug("Successfully logged into the developer site.")
     
     resp_paylaod = resp.json()
     ip = json_loads(base64_b64decode(resp_paylaod["temporaryAPIToken"].split(".")[1] + "====").decode("utf-8"))["limits"][1]["cidrs"][0].split("/")[0]
     
-    print("Found IP address to be %s", ip)
+    app.logger.debug("Found IP address to be %s", ip)
     
     resp = s.post("https://developer.clashofclans.com/api/apikey/list")
     if "keys" in resp.json():
         keys = (resp.json())["keys"]
         _keys.extend(key["key"] for key in keys if key["name"] == key_names and ip in key["cidrRanges"])
     
-        print("Retrieved %s valid keys from the developer site.", len(_keys))
+        app.logger.debug("Retrieved %s valid keys from the developer site.", len(_keys))
     
         if len(_keys) < key_count:
             for key in (k for k in keys if k["name"] == key_names and ip not in k["cidrRanges"]):
-                print(
+                app.logger.debug(
                     "Deleting key with the name %s and IP %s (not matching our current IP address).",
                     key_names, key["cidrRanges"],
                 )
@@ -403,15 +460,15 @@ def getToken(email,password,key_names):
             "scopes": ["clash"],
         }
     
-        print("Creating key with data %s.", str(data))
+        app.logger.debug("Creating key with data %s.", str(data))
     
         resp = s.post("https://developer.clashofclans.com/api/apikey/create", json=data)
         key = resp.json()
-        print(resp.json())
+        app.logger.debug(resp.json())
         _keys.append(key["key"]["key"])
     
     if len(keys) == 10 and len(_keys) < key_count:
-        print("%s keys were requested to be used, but a maximum of %s could be "
+        app.logger.debug("%s keys were requested to be used, but a maximum of %s could be "
                      "found/made on the developer site, as it has a maximum of 10 keys per account. "
                      "Please delete some keys or lower your `key_count` level."
                      "I will use %s keys for the life of this client.",
@@ -424,7 +481,7 @@ def getToken(email,password,key_names):
             "unused keys.".format(len(keys), key_names)
         )
     
-    print("Successfully initialised keys for use.")
+    app.logger.debug("Successfully initialised keys for use.")
     return(_keys[0])
 
 def obtainLock():
@@ -519,7 +576,7 @@ def warnings():
                                     m["warnings"].append(wdate)
                                 else:
                                     m["warnings"] = [wdate]
-                                print("Add Warning " + m["name"])
+                                app.logger.debug("Add Warning " + m["name"])
                                 
                             else:
                                 for i, w in enumerate(m["warnings"]):
