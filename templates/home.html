@@ -97,6 +97,10 @@
 		% endif
 	%endfor
     <td></td>
+    <td>
+    <% numberOfMembers = len(members) %>
+    ${numberOfMembers}/50
+    </td>
   </tr>
   
   % for i, member in enumerate(members):

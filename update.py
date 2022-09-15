@@ -39,7 +39,7 @@ homeTemplate = "templates/home.html"
 notesTemplate = "notes.html"
 warningTemplate = "warning.html"
 
-logfile = '/data/clanManager.log'
+logfile = 'data/clanManager.log'
 
 dictConfig(
             {
