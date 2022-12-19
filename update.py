@@ -31,7 +31,7 @@ apiUrls = {}
 
 configFile = "data/config.json"
 dataFile = "data/mydata.json"
-backupFile = "data/mydata_BK.json"
+backupFile = "data/backup/mydata_BK.json"
 notesDataFile = "data/notes.json"
 
 homeHeader = "data/content.html"
@@ -39,7 +39,7 @@ homeTemplate = "templates/home.html"
 notesTemplate = "notes.html"
 warningTemplate = "warning.html"
 
-logfile = 'data/clanManager.log'
+logfile = 'data/logs/clanManager.log'
 
 dictConfig(
             {
@@ -118,13 +118,21 @@ def update():
     
     if obtainLock():
         try:
+            day = int(datetime.now().strftime("%d"))
+            dailyBackupFile = backupFile + "." + str(day)
+            pruneBackups()
+            if not os.path.exists(dailyBackupFile):
+                writeJson(dailyBackupFile,clan)
+                
             # Update current Season data
             response = requests.get(apiUrls["season"], headers={'Authorization': 'Bearer ' + token})
             if response.status_code == 200 and response.json():
                 if "season" in clan:
                     if clan["season"] != response.json():
-                        setPreviousDonations()
-                        clan["season"] = response.json()
+                        seasonEndDate = datetime.strptime(clan["season"]["endTime"], '%Y%m%dT%H%M%S.000Z')
+                        if datetime.now() < seasonEndDate + timedelta(days=warLeagueEndDay):
+                            setPreviousDonations()
+                            clan["season"] = response.json()
                 else:
                     setPreviousDonations()
                     clan["season"] = response.json()
@@ -203,13 +211,13 @@ def update():
                             if "prevDonation" in m:
                                 member["prevDonation"] = m["prevDonation"]
                                 
-                            app.logger.debug("Updating " + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
+                            app.logger.debug("Updating [" + str(updateMember) + "|" + str(len(clan["clan"]["memberList"])) + "]" + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
                             clan["members"][i] = member
                             found = True
                             break
                     
                     if not found:
-                        app.logger.debug("Adding " + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
+                        app.logger.debug("Adding [" + str(updateMember) + "|" + str(len(clan["clan"]["memberList"])) + "]" + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
                         clan["members"].append(member)
                     
                     updateMember += 1
@@ -417,6 +425,16 @@ def writeJson(file,data):
     global clan
     with open(file, 'w') as f:
         json.dump(data, f, indent=2)
+
+def pruneBackups():
+    path = "data/backup"
+    now = time.time()
+
+    for filename in os.listdir(path):
+        # if os.stat(os.path.join(path, filename)).st_mtime < now - 7 * 86400:
+        if os.path.getmtime(os.path.join(path, filename)) < now - 7 * 86400:
+            if os.path.isfile(os.path.join(path, filename)):
+                os.remove(os.path.join(path, filename))
         
 def getToken(email,password,key_names):
     key_count = 1
