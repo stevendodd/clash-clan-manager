@@ -115,11 +115,6 @@ def main():
 
 def getApiData():
     global updateMember
-    
-    latestSeason = {}
-    response = requests.get(apiUrls["season"], headers={'Authorization': 'Bearer ' + token})
-    if response.status_code == 200 and response.json():
-        latestSeason = response.json()
         
     latestCurrentWar = {}
     response = requests.get(apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + token})
@@ -152,7 +147,6 @@ def getApiData():
             updateMember += 1
             
     return({"updateMember": updateMember, 
-            "season": latestSeason,
             "currentWar": latestCurrentWar,
             "clan": latestClan,
             "warLog": latestWarLog,
@@ -171,13 +165,19 @@ def update():
             if not os.path.exists(dailyBackupFile):
                 writeJson(dailyBackupFile,clan)
                 
-            # Update current Season data
-            if "season" not in clan:
-                clan["season"] = latestApiData["season"]
-                
-            if clan["season"] != latestApiData["season"]:
-                setPreviousDonations()
-                clan["season"] = latestApiData["season"]
+            # Detect donation reset
+            if "clan" in clan:
+                resetDetected = False
+                for ml in latestApiData["clan"]["memberList"]:
+                    if (not resetDetected) and ml["donationsReceived"] == 0 and ml["donations"] == 0:
+                        for m in clan["clan"]["memberList"]:
+                            if m["tag"] == ml["tag"]:
+                                if m["donationsReceived"] > 0 or m["donations"] > 0:
+                                    resetDetected = True
+                                    break
+                                
+                if resetDetected:
+                    setPreviousDonations()    
             
             # Update current war data
             if "preparationStartTime" in latestApiData["currentWar"]:
@@ -270,6 +270,10 @@ def processResults():
         m["townhallLevel"] = ""
         m["wars"] = [0,0,0,0,0,0,0,0,0,0]
         m["attackWarnings"] = 0
+        
+        if "prevDonations" not in m:
+            m["prevDonations"] = 0
+            m["prevDonationsReceived"] = 0
     
         if m["role"] == "leader":
             m["role"] = "L"
