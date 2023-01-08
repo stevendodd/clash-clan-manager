@@ -129,20 +129,34 @@
     <td valign="middle"><img height=30 src="${member["league"]["iconUrls"]["tiny"]}"></td> 
     <td style="white-space:nowrap;"><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary">${member["name"]}</a></td>
     
-    <td style="white-space:nowrap;font-size: 0.8em">(${member["role"]})&nbsp;</td>
+    <td style="white-space:nowrap;font-size: 0.5em">
+	    <table cellspacing=1 style="font-size: 0.5em">
+	    <tr>
+	    % if member["role"] == "L":
+	        <td style="background-color:SteelBlue">Leader &nbsp;  &nbsp; &nbsp;</td>
+	    % elif member["role"] == "CL":
+	    	<td style="background-color:SteelBlue">Co-Leader</td>
+	    % elif member["role"] == "E":
+	    	<td style="background-color:Sienna">Elder &nbsp; &nbsp; &nbsp; &nbsp;</td>
+	    % else:
+	    	<td style="background-color:Purple">Member &nbsp;  &nbsp;</td>
+	    % endif
+	    </tr><tr>
+		    % if "warPreference" in member:
+		    	% if member["warPreference"] == "in":
+		    	<td style="background-color:Green" valign=middle>I'm In</td>
+		    	% else:
+		    	<td style="background-color:Red" valign=middle>${member["dateLastIn"]}</td>
+		    	% endif
+		    % endif
+		 </tr>
+	    </table>
+    </td>
     <td><table cellspacing=0 style="font-size: 0.5em">
-    <tr><td>
-    <table cellspacing=0 style="font-size: 0.5em"><tr><td>
-    % if "warPreference" in member:
-    <img height=10 src="static/${member["warPreference"]}.png">
-    	% if member["warPreference"] == "out":
-    	</td><td valign=middle>${member["dateLastIn"]}</td>
-    	% endif
-    % endif
-    </td></tr></table>
-    </td></tr>
+
     <tr><td class="tooltip" data-text="Donation mod: ${member["donationMod"]}" style="white-space:nowrap;" align=left>
-    ${member["donations"]} / ${member["donationsReceived"]}</td></tr>
+    ${member["donations"]} / ${member["donationsReceived"]}
+    <br>${member["prevDonations"]} / ${member["prevDonationsReceived"]}</td></tr>
 	</table></td>
 
     % for w in member["wars"]:

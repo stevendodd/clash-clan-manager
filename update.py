@@ -112,9 +112,56 @@ def main():
     
     SECRET_KEY = os.urandom(32)
     app.config['SECRET_KEY'] = SECRET_KEY
+
+def getApiData():
+    global updateMember
+    
+    latestSeason = {}
+    response = requests.get(apiUrls["season"], headers={'Authorization': 'Bearer ' + token})
+    if response.status_code == 200 and response.json():
+        latestSeason = response.json()
+        
+    latestCurrentWar = {}
+    response = requests.get(apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + token})
+    if response.status_code == 200 and "preparationStartTime" in response.json():
+        latestCurrentWar = response.json()
+    
+    latestClan = {}
+    response = requests.get(apiUrls["clan"], headers={'Authorization': 'Bearer ' + token})
+    if response.status_code == 200 and response.json():
+        latestClan = response.json()
+    
+    response = requests.get(latestClan["badgeUrls"]["small"])
+    if response.status_code == 200:
+        open('static/badge.png', 'wb').write(response.content)
+    
+    latestWarLog = {}
+    response = requests.get(apiUrls["warlog"], headers={'Authorization': 'Bearer ' + token})
+    if response.status_code == 200 and response.json():
+        latestWarLog = response.json()
+    
+    latestPlayers = []
+    for r in range(5):
+        if updateMember >= len(latestClan["memberList"]):
+                updateMember = 0
+                
+        playerTag = latestClan["memberList"][updateMember]["tag"].strip("#")
+        response = requests.get(apiUrls["player"] + playerTag, headers={'Authorization': 'Bearer ' + token})
+        if response.status_code == 200 and response.json():
+            latestPlayers.append(response.json())
+            updateMember += 1
+            
+    return({"updateMember": updateMember, 
+            "season": latestSeason,
+            "currentWar": latestCurrentWar,
+            "clan": latestClan,
+            "warLog": latestWarLog,
+            "players": latestPlayers})  
     
 def update():
-    global clan, updateMember   
+    global clan
+    
+    latestApiData = getApiData()
     
     if obtainLock():
         try:
@@ -125,25 +172,19 @@ def update():
                 writeJson(dailyBackupFile,clan)
                 
             # Update current Season data
-            response = requests.get(apiUrls["season"], headers={'Authorization': 'Bearer ' + token})
-            if response.status_code == 200 and response.json():
-                if "season" in clan:
-                    if clan["season"] != response.json():
-                        seasonEndDate = datetime.strptime(clan["season"]["endTime"], '%Y%m%dT%H%M%S.000Z')
-                        if datetime.now() < seasonEndDate + timedelta(days=warLeagueEndDay):
-                            setPreviousDonations()
-                            clan["season"] = response.json()
-                else:
-                    setPreviousDonations()
-                    clan["season"] = response.json()
+            if "season" not in clan:
+                clan["season"] = latestApiData["season"]
+                
+            if clan["season"] != latestApiData["season"]:
+                setPreviousDonations()
+                clan["season"] = latestApiData["season"]
             
             # Update current war data
-            response = requests.get(apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + token})
-            if response.status_code == 200 and "preparationStartTime" in response.json():
-                if len(clan["wars"])>0 and clan["wars"][0]["preparationStartTime"] == response.json()["preparationStartTime"]:
-                    clan["wars"][0] = response.json()
+            if "preparationStartTime" in latestApiData["currentWar"]:
+                if len(clan["wars"])>0 and clan["wars"][0]["preparationStartTime"] == latestApiData["currentWar"]["preparationStartTime"]:
+                    clan["wars"][0] = latestApiData["currentWar"]
                 else:                       
-                    clan["wars"].insert(0, response.json())
+                    clan["wars"].insert(0, latestApiData["currentWar"])
                     
             for i, w in enumerate(clan["wars"]):
                 if w["state"] == "preparation" and i>0:
@@ -155,73 +196,62 @@ def update():
                            
                     app.logger.debug('keep: ' + clan["wars"][i]['state'] + " " + clan["wars"][i]['endTime'])
             
-            if clan["wars"][0]['state'] != "warEnded":       
-                clan["wars"] = trimList(clan["wars"],11)
-            else:
-                clan["wars"] = trimList(clan["wars"],10)
+            # Only keep last 10 wars
+            if len(clan["wars"]) > 0:
+                if clan["wars"][0]['state'] != "warEnded":       
+                    clan["wars"] = trimList(clan["wars"],11)
+                else:
+                    clan["wars"] = trimList(clan["wars"],10)
                 
             # Update clan data
-            response = requests.get(apiUrls["clan"], headers={'Authorization': 'Bearer ' + token})
-            if response.status_code == 200 and response.json():
-                clan["clan"] = response.json()
-                clan["lastUpdated"] = datetime.now().strftime("%c")
-                
-            response = requests.get(clan["clan"]["badgeUrls"]["small"])
-            open('static/badge.png', 'wb').write(response.content)
+            clan["clan"] = latestApiData["clan"]
+            clan["lastUpdated"] = datetime.now().strftime("%c")
                 
             # Update warlog data
-            response = requests.get(apiUrls["warlog"], headers={'Authorization': 'Bearer ' + token})
-            if response.status_code == 200 and response.json():
-                clan["warLog"] = response.json()
+            clan["warLog"] = latestApiData["warLog"]
             
             # Update player
-            for r in range(5):
-                if updateMember >= len(clan["clan"]["memberList"]):
-                        updateMember = 0
-                        
-                playerTag = clan["clan"]["memberList"][updateMember]["tag"].strip("#")
-                response = requests.get(apiUrls["player"] + playerTag, headers={'Authorization': 'Bearer ' + token})
-                if response.status_code == 200 and response.json():
-                    player = response.json()
-                    
-                    member = {
-                        "tag": player["tag"],
-                        "name": player["name"],
-                        "townHallLevel": player["townHallLevel"],
-                        "warPreference": player["warPreference"],
-                        "dateLastIn": "",
-                        "dateLastSeen": datetime.now().strftime("%d %b %y")
-                    }
-                    
-                    if member["warPreference"] == "in":
-                        member["dateLastIn"] = datetime.now().strftime("%d %b")                
-                    
-                    found = False    
-                    for i,m in enumerate(clan["members"]):
-                        if m["tag"] == member["tag"]:
-                            if member["warPreference"] == "out":
-                                member["dateLastIn"] = m["dateLastIn"]
+            for j,player in enumerate(latestApiData["players"]):
+                currentMember = latestApiData["updateMember"] - len(latestApiData["players"]) + j
+                if currentMember < 0:
+                    currentMember = len(clan["clan"]["memberList"]) + currentMember
+                         
+                member = {
+                    "tag": player["tag"],
+                    "name": player["name"],
+                    "townHallLevel": player["townHallLevel"],
+                    "warPreference": player["warPreference"],
+                    "dateLastIn": "",
+                    "dateLastSeen": datetime.now().strftime("%d %b %y")
+                }
+                
+                if member["warPreference"] == "in":
+                    member["dateLastIn"] = datetime.now().strftime("%d %b")                
+                
+                found = False    
+                for i,m in enumerate(clan["members"]):
+                    if m["tag"] == member["tag"]:
+                        if member["warPreference"] == "out":
+                            member["dateLastIn"] = m["dateLastIn"]
+                            
+                        if "warnings" in m:
+                            member["warnings"] = m["warnings"]
+                            
+                        if "prevDonationsReceived" in m:
+                            member["prevDonationsReceived"] = m["prevDonationsReceived"]
+                            
+                        if "prevDonation" in m:
+                            member["prevDonation"] = m["prevDonation"]
+                            
+                        app.logger.debug("Updating [" + str(currentMember + 1) + "|" + str(len(clan["clan"]["memberList"])) + "] " + clan["clan"]["memberList"][currentMember]["name"] + ": " + str(member))
+                        clan["members"][i] = member
+                        found = True
+                        break
+                
+                if not found:
+                    app.logger.debug("Adding [" + str(currentMember + 1) + "|" + str(len(clan["clan"]["memberList"])) + "] " + clan["clan"]["memberList"][currentMember]["name"] + ": " + str(member))
+                    clan["members"].append(member)
                                 
-                            if "warnings" in m:
-                                member["warnings"] = m["warnings"]
-                                
-                            if "prevDonationsReceived" in m:
-                                member["prevDonationsReceived"] = m["prevDonationsReceived"]
-                                
-                            if "prevDonation" in m:
-                                member["prevDonation"] = m["prevDonation"]
-                                
-                            app.logger.debug("Updating [" + str(updateMember) + "|" + str(len(clan["clan"]["memberList"])) + "]" + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
-                            clan["members"][i] = member
-                            found = True
-                            break
-                    
-                    if not found:
-                        app.logger.debug("Adding [" + str(updateMember) + "|" + str(len(clan["clan"]["memberList"])) + "]" + clan["clan"]["memberList"][updateMember]["name"] + ": " + str(member))
-                        clan["members"].append(member)
-                    
-                    updateMember += 1
-            
             processResults()
             writeJson(dataFile,clan)
         finally:
@@ -341,22 +371,13 @@ def processResults():
                 if "prevDonationsReceived" in p:
                     prevDonationsReceived = p["prevDonationsReceived"]
                     prevDonation = p["prevDonation"]
-                else:
-                    p["prevDonationsReceived"] = prevDonationsReceived = m["donationsReceived"]
-                    p["prevDonation"] = prevDonation = m["donations"]
-                    
-                if m["donationsReceived"] >= p["prevDonationsReceived"] and m["donations"] >= p["prevDonation"]:
-                    p["prevDonationsReceived"] = m["donationsReceived"]
-                    p["prevDonation"] = m["donations"]
-                    
-                if day > warLeagueEndDay and day < warLeagueEndDay + 5:
-                    p["prevDonationsReceived"] = 0
-                    p["prevDonation"] = 0
-                    
+                 
+                m["prevDonationsReceived"] = prevDonationsReceived
+                m["prevDonations"] = prevDonation  
                 break
         
         donationMod = 0        
-        if prevDonationsReceived > m["donationsReceived"] or prevDonation > m["donations"]:
+        if day <= warLeagueEndDay:
             donationsReceived = prevDonationsReceived
             donations = prevDonation
         else:
@@ -391,9 +412,10 @@ def processResults():
     mytemplate = Template(filename=homeTemplate)        
     members.sort(reverse=True, key=sortMembers)
     
+    # Has rank improved in last three wars
     lastThreeMembers = members.copy()
     lastThreeMembers.sort(reverse=True, key=sortMembersLastThree)
-        
+    
     for i,m in enumerate(members):
         m["lastThree"] = 0
         for j,lt in enumerate(lastThreeMembers):
