@@ -153,7 +153,7 @@ def getApiData():
             "players": latestPlayers})  
     
 def update():
-    global clan
+    global clan, day
     
     latestApiData = getApiData()
     
