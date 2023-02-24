@@ -26,6 +26,7 @@ updateMember = 0
 day = int(datetime.now().strftime("%d"))
 warLeagueEndDay = 8
 
+clanDetails = {}
 clan = {}
 apiUrls = {}
 
@@ -73,7 +74,7 @@ dictConfig(
 app = Flask(__name__)
 
 def main():
-    global token, clanTag, notesKey, clan, app, apiUrls
+    global token, clanDetails, clanTag, notesKey, clan, app, apiUrls
     
     if os.path.exists(configFile):
         f = open(configFile)
@@ -99,7 +100,10 @@ def main():
     response = requests.get(apiUrls["clan"], headers={'Authorization': 'Bearer ' + token})
     if response.status_code != 200:
         exit(str(response) + ": Failed to get clan")
-     
+    
+    clanDetails["name"] = response.json()["name"]
+    clanDetails["tag"] = clanTag
+
     clan = readData()
     writeJson(backupFile,clan)
     clan["updateLock"] = False
@@ -429,8 +433,9 @@ def processResults():
                 elif i < j:
                     m["lastThree"] = -1
                 break
-        
-    page = mytemplate.render(members=members, 
+    
+    page = mytemplate.render(clan=clanDetails,
+                             members=members, 
                              content=content, 
                              warlog=clan["warLog"]["items"], 
                              warState=clan["warLog"]["currentState"],

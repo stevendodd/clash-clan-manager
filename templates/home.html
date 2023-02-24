@@ -58,9 +58,33 @@
 </head>
 <body style="background-color:#000000; color:#ffffff; font-family:Verdana;">
 
-% for line in content:
-  ${line}
-% endfor
+<table>
+<tr><td nowrap>
+  <table cellspacing=0 cellpadding=0><tr><td>
+   <img src="static/badge.png">
+   </td>
+   <td style="white-space:nowrap;">
+   <b style="font-size: 1.75em">${clan["name"]} Clan Manager</b>
+   </td></tr>
+  </table>
+<img id="banner" src="static/banner1.png" alt="Clash of Clans Clan Manager" width=95%>
+<script type="text/javascript">
+var myPix = new Array("/static/banner1.png","/static/banner2.png","/static/banner3.png","/static/banner4.png","/static/banner5.png","/static/banner6.png");
+var randomNum = Math.floor(Math.random() * myPix.length);
+document.getElementById("banner").src = myPix[randomNum];
+</script>
+<p style="font-size: 0.75em">Apply to join <a style="color: gold;" href="https://link.clashofclans.com/en?action=OpenClanProfile&tag=${clan["tag"]}">in-game</a> | <a style="color: gold;" href="/static/guidelines.html">Clan rules and information</a> | <a style="color: gold;" href="https://www.clashofstats.com/clans/${clan["tag"]}/wars/cwl/current/" target="_blank">Clan War League</a> | <a style="color: gold;" href="https://clashspot.net/en/clan/${clan["tag"]}/capital/home-village" target="_blank">Clan Capital</a></p>
+</td></tr>
+<tr><td>
+<table cellspacing=><tr>
+ <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:LightGray">&nbsp;</td></tr></table></td>
+ <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:Tomato">&nbsp;</td></tr></table></td>
+ <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:Orange">&nbsp;</td></tr></table></td>
+ <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:MediumSeaGreen">&nbsp;</td></tr></table></td>
+ <td>Legend: Not in war, 0, 1, 2 attacks respectively</td>
+</tr></table>
+
+</td></tr></table>
   
 <form method="post" action="/post">
 <table cellpadding=2 cellspacing=0 style="font-size: 0.9em">
