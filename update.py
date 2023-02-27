@@ -181,7 +181,10 @@ def update():
                                     break
                                 
                 if resetDetected:
-                    setPreviousDonations()    
+                    setPreviousDonations()
+                    
+            if day <= warLeagueEndDay or "seasonEnd" not in clan:
+                clan["seasonEnd"] = False
             
             # Update current war data
             if "preparationStartTime" in latestApiData["currentWar"]:
@@ -385,7 +388,7 @@ def processResults():
                 break
         
         donationMod = 0        
-        if day <= warLeagueEndDay:
+        if day <= warLeagueEndDay or clan["seasonEnd"]:
             donationsReceived = prevDonationsReceived
             donations = prevDonation
         else:
@@ -445,6 +448,7 @@ def processResults():
 def setPreviousDonations():
     global clan
     
+    clan["seasonEnd"] = True
     for m in clan["clan"]["memberList"]:
         for p in clan["members"]:
             if m["tag"] == p["tag"]:
@@ -554,7 +558,7 @@ def readData():
         f = open(dataFile)
         return(json.load(f))
     else:
-        return({"wars": [], "members": []})
+        return({"wars": [], "members": [], "seasonEnd": False})
     
 def readNotes():
     if os.path.exists(notesDataFile):
