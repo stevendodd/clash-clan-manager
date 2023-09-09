@@ -1,5 +1,6 @@
 Flask==2.0.2
 Flask-WTF==1.0.1
 APScheduler==3.8.1
+tzlocal<3.0
 requests==2.26.0
 mako==1.1.6

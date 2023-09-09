@@ -1,0 +1,159 @@
+* {
+  box-sizing: border-box; }
+
+body {
+  font-family: 'Helvetica Neue', Arial, Sans-serif;
+  font-size: 0.8em;
+  max-width: 1024px;
+  margin: 20px auto;
+  background: #c8c8c8;
+  color: #02151a; }
+#homeContainer { width: 600px; }
+
+.hero {
+  margin-bottom: 40px; }
+  .hero h2 {
+    margin: 0;
+    font-size: 3.5em; }
+
+.actions a {
+  display: block;
+  margin: 25px auto 0;
+  width: 200px;
+  text-align: center;
+  background: #b31d14;
+  color: #c8c8c8;
+  padding: 6px;
+  border-radius: 3px;
+  text-decoration: none; }
+
+.filters {
+  margin-bottom: 20px; }
+
+.filter-container {
+  float: left;
+  width: 25%;
+  padding-right: 10px; }
+  .filter-container:last-of-type {
+    padding-right: 0; }
+  .filter-container input {
+    -webkit-appearance: none;
+    border: 2px solid #b31d14;
+    background: #c8c8c8;
+    border-radius: 3px;
+    font-size: 18px;
+    width: 100%; }
+    .filter-container input:focus {
+      outline: none; }
+
+table {
+  width: 100%;
+  border-collapse: collapse; }
+  table th {
+    text-align: left;
+    border-bottom: 1px solid #043a47; }
+  table th, table td {
+    padding: 6px 4px; }
+  table td {
+    border-bottom: 1px solid #087891; }
+  table tr:last-of-type td {
+    border-bottom: none; }
+  table tr td:last-of-type {
+    border-right: none; }
+
+.clearfix {
+  clear: both;
+  width: 100%; }
+  
+.accordion > input[name="collapse"] {
+  display: none;
+  
+  /*position: absolute;
+  left: -100vw;*/
+}
+
+.accordion label,
+.accordion .content{
+ /*max-width: 620px;*/
+  margin: 0 auto;
+ }
+
+.accordion .content {
+  background: #525252;
+  overflow: hidden;
+  text-align: left;
+  height: 0;
+  transition: 0.5s;
+  box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.accordion > input[name="collapse"]:checked ~ .content {
+  height: 100%;
+  transition: height 0.5s;
+}
+
+.accordion label {
+  display: block;
+}
+
+.accordion {
+  margin-bottom: 1em;
+}
+
+.accordion > input[name="collapse"]:checked ~ .content {
+  border-top: 0;
+  transition: 0.3s;
+}
+
+.accordion .handle {
+  margin: 0;
+  font-size: 10px;
+}
+
+.accordion label {
+  color: #fff;
+  cursor: pointer;
+  font-weight: normal;
+  padding: 5px;
+  background: #2874A6;
+  user-select: none;
+}
+
+.accordion label:hover,
+.accordion label:focus {
+  background: #1F618D;
+}
+
+.accordion .handle label:before {
+  font-family: FontAwesome;
+  content: "\f107";
+  display: inline-block;
+  margin-right: 10px;
+  font-size: 1em;
+  line-height: 1.556em;
+  vertical-align: middle;
+  transition: 0.4s;
+}
+
+.accordion > input[name="collapse"]:checked ~ .handle label:before {
+    transform: rotate(180deg);
+    transform-origin: center;
+    transition: 0.4s;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+}
+
+.accordion p:last-child {
+  margin-bottom: 0;
+}
+
+.responsive {
+  width: 80%;
+  max-width: 55px;
+  min-width: 20px;
+  height: auto;
+}

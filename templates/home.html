@@ -1,5 +1,13 @@
+<!DOCTYPE html>
+<html lang='en' xml:lang='en' xmlns='http://www.w3.org/1999/xhtml'>
 <html>
 <head>
+<meta charset='utf-8' />
+<meta content='en' name='language' />
+<meta content='width=device-width, initial-scale=1' name='viewport' />
+<link href="https://www.jqueryscript.net/css/jquerysctipttop.css"
+	rel="stylesheet" type="text/css">
+  <link href='/static/style.css' media='screen' rel='stylesheet' type='text/css' />
   <title>Boom Boom Clan Manager - Clash of Clans</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="google-site-verification" content="8TbdCCT9ekGnxd9KQajLhj5UI4tcu7u0O_6VTGbv_Fk" />
@@ -17,10 +25,9 @@
   
   /* move to right */
   left:100%;
-  margin-left:15px; /* and add a small left margin */
+  margin-left:1px; /* and add a small left margin */
   
   /* basic styles */
-  width:100px;
   padding:10px;
   border-radius:10px;
   background:#ccc;
@@ -32,71 +39,98 @@
 .tooltip:hover:before {
   display:block;
 }
-.tooltip:after {
-  content: "";
-  position:absolute;
-  
-  /* position tooltip correctly */
-  left:100%;
-  margin-left:-3px;
- 
-  /* vertically center */
-  top:50%;
-  transform:translateY(-50%);
- 
-  /* the arrow */
-  border:10px solid #ccc;
-  border-color: transparent ccc transparent transparent;
-  
-  display:none;
-}
+
 .tooltip:hover:before, .tooltip:hover:after {
   display:block;
 }
+
+  table th, table td {
+    padding: 1px 1px; }
   </style>
 
 </head>
 <body style="background-color:#000000; color:#ffffff; font-family:Verdana;">
+<div id="homeContainer">
+	<table cellspacing=0 cellpadding=0>
+		<tr>
+			<td><img src="/static/badge.png"></td>
+			<td style="white-space: nowrap;" width=100%><div
+					style="display: flex; align-items: center; justify-content: flex-start;">
+					<b style="font-size: 1.75em">${clan["name"]} Clan Manager</b>
+				</div></td>
+		</tr>
+	</table>
 
-<table>
-<tr><td nowrap>
-  <table cellspacing=0 cellpadding=0><tr><td>
-   <img src="static/badge.png">
-   </td>
-   <td style="white-space:nowrap;">
-   <b style="font-size: 1.75em">${clan["name"]} Clan Manager</b>
-   </td></tr>
-  </table>
-<img id="banner" src="static/banner1.png" alt="Clash of Clans Clan Manager" width=95%>
-<script type="text/javascript">
-var myPix = new Array("/static/banner1.png","/static/banner2.png","/static/banner3.png","/static/banner4.png","/static/banner5.png","/static/banner6.png");
-var randomNum = Math.floor(Math.random() * myPix.length);
-document.getElementById("banner").src = myPix[randomNum];
-</script>
-<p style="font-size: 0.75em">Apply to join <a style="color: gold;" href="https://link.clashofclans.com/en?action=OpenClanProfile&tag=${clan["tag"]}">in-game</a> | <a style="color: gold;" href="/static/guidelines.html">Clan rules and information</a> | <a style="color: gold;" href="https://www.clashofstats.com/clans/${clan["tag"]}/wars/cwl/current/" target="_blank">Clan War League</a> | <a style="color: gold;" href="https://clashspot.net/en/clan/${clan["tag"]}/capital/home-village" target="_blank">Clan Capital</a></p>
-</td></tr>
-<tr><td>
-<table cellspacing=><tr>
- <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:LightGray">&nbsp;</td></tr></table></td>
- <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:Tomato">&nbsp;</td></tr></table></td>
- <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:Orange">&nbsp;</td></tr></table></td>
- <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:MediumSeaGreen">&nbsp;</td></tr></table></td>
- <td>Legend: Not in war, 0, 1, 2 attacks respectively</td>
-</tr></table>
+	<table>
+		<tr>
+			<td nowrap><img id="banner" src="static/banner1.png"
+				alt="Clash of Clans Clan Manager" width=95%> <script
+					type="text/javascript">
+					var myPix = new Array("/static/banner1.png",
+							"/static/banner2.png", "/static/banner3.png",
+							"/static/banner4.png", "/static/banner5.png",
+							"/static/banner6.png");
+					var randomNum = Math.floor(Math.random() * myPix.length);
+					document.getElementById("banner").src = myPix[randomNum];
+				</script>
+				<div style="font-size:1em;">
+					Apply to join <a style="color: gold;"
+						href="https://link.clashofclans.com/en?action=OpenClanProfile&tag=${clan["tag"]}">in-game</a>
+					| <a style="color: gold;" href="/static/guidelines.html">Clan
+						rules and information</a> | <a style="color: gold;"
+						href="/cwl">Clan War League</a> | <a
+						style="color: gold;" href="https://clashspot.net/en/clan/${clan["tag"]}/capital/home-village" target="_blank">Clan Capital</a>
+				</div></td>
+		</tr>
+	</table>
+	<table>
+		<tr>
+			<td>
+				<table cellspacing=1 cellpadding=0>
+					<tr>
+						<td width=10px><table cellpadding=0 cellspacing=0>
+								<tr>
+									<td style="background-color: LightGray">&nbsp;</td>
+								</tr>
+							</table></td>
+						<td width=10px><table cellpadding=0 cellspacing=0>
+								<tr>
+									<td style="background-color: Tomato">&nbsp;</td>
+								</tr>
+							</table></td>
+						<td width=10px><table cellpadding=0 cellspacing=0>
+								<tr>
+									<td style="background-color: Orange">&nbsp;</td>
+								</tr>
+							</table></td>
+						<td width=10px><table cellpadding=0 cellspacing=0>
+								<tr>
+									<td style="background-color: MediumSeaGreen">&nbsp;</td>
+								</tr>
+							</table></td>
+						<td nowrap><div
+								style="display: flex; align-items: center; justify-content: flex-start;">Legend:
+								Not in war, 0, 1, 2 attacks respectively</div></td>
+					</tr>
+				</table>
 
-</td></tr></table>
-  
-<form method="post" action="/post">
-<table cellpadding=2 cellspacing=0 style="font-size: 0.9em">
+			</td>
+		</tr>
+	</table>
+
+<table cellpadding=2 cellspacing=0">
   <tr><td valign=top><table cellpadding=2 cellspacing=0 >
   
   <tr>
-  <td valign=center colspan=4>
+  <td valign=center colspan=4 nowrap>
+  <form method="post" action="/post">
+  
   <input type="password" size=14 name="key">
   <input type="submit" style="webkit-appearance: none;webkit-border-radius: 0;" height=100% value='Notes'>
+  </form>
   </td>
   <td colspan=2 valign=center align=right style="white-space:nowrap;"> 
-	  <table><tr><td style="white-space:nowrap;font-size: 0.8em">War Log:&nbsp;</td><td>
+	  <table><tr><td style="white-space:nowrap;">War Log:&nbsp;</td><td width=10px>
 	  % if warState != "warEnded":
 	  <table cellpadding=0><tr><td style="background-color:Orange">&nbsp;</td></table>
 	  % else:
@@ -111,19 +145,19 @@ document.getElementById("banner").src = myPix[randomNum];
 		% if count < 10:
 			<% count += 1 %>
 			% if w["result"]=="win":
-			<td><table cellpadding=0 cellspacing=0><tr><td style="background-color:MediumSeaGreen">&nbsp;</td></table></td>
+			<td width=10px style="font-size: 1em;"><table cellpadding=0 cellspacing=0><tr><td style="background-color:MediumSeaGreen">&nbsp;</td></table></td>
 			% elif w["result"]=="lose":
-			<td><table cellpadding=0 cellspacing=0><tr><td style="background-color:Tomato">&nbsp;</td></table></td>
+			<td width=10px style="font-size: 1em;"><table cellpadding=0 cellspacing=0><tr><td style="background-color:Tomato">&nbsp;</td></table></td>
 			% else:
-			<td><table cellpadding=0 cellspacing=0><tr><td style="background-color:LightGray">&nbsp;</td></table></td>
+			<td width=10px style="font-size: 1em;"><table cellpadding=0 cellspacing=0><tr><td style="background-color:LightGray">&nbsp;</td></table></td>
 			% endif
 		% endif
 		% endif
 	%endfor
-    <td></td>
-    <td>
+    <td colspan=3><div
+					style="display: flex; align-items: center; justify-content: flex-end;">
     <% numberOfMembers = len(members) %>
-    ${numberOfMembers}/50
+    ${numberOfMembers}/50</div>
     </td>
   </tr>
   
@@ -143,22 +177,22 @@ document.getElementById("banner").src = myPix[randomNum];
       % if member["warnings"] == 0:
       <td width=2></td>
       % elif member["warnings"] == 1:
-      <td width=2 style="background-color:Yellow"></td>
+      <td width=2 style="background-color:Yellow">&nbsp;</td>
       %  elif member["warnings"] == 2:
-      <td width=2 style="background-color:Tomato"></td>
+      <td width=2 style="background-color:Tomato">&nbsp;</td>
       % else:
-      <td width=2 style="background-color:Maroon"></td>
+      <td width=2 style="background-color:Maroon">&nbsp;</td>
       % endif
     % else:
       <td width=2></td>
     % endif
   
-    <td align=center class="tooltip" data-text="Rank: ${member["rank"]}" style="white-space:nowrap;font-size: 0.5em"><img height=30 src="${member["townhallLevel"]}"></td>
-    <td valign="middle"><img height=30 src="${member["league"]["iconUrls"]["tiny"]}"></td> 
-    <td style="white-space:nowrap;font-size: 0.9em"><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary" target="_blank">${member["name"]}</a></td>
+    <td width=20% align=right class="tooltip" data-text="Rank: ${member["rank"]}" style="white-space:nowrap;font-size: 0.8em"><img height=35 src="${member["townhallLevel"]}"></td>
+    <td valign="middle"><img src="${member["league"]["iconUrls"]["tiny"]}" height=35></td> 
+    <td style="white-space:nowrap;font-size: 1em;"><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary" target="_blank">${member["name"]}</a></td>
     
-    <td style="white-space:nowrap;font-size: 0.5em">
-	    <table cellspacing=1 style="font-size: 0.5em">
+    <td style="white-space:nowrap;font-size: 0.8em;">
+	    <table cellspacing=1 style="font-size: 0.8em;">
 	    <tr>
 	    % if member["role"] == "L":
 	        <td style="background-color:SteelBlue">Leader &nbsp;  &nbsp; &nbsp;</td>
@@ -180,7 +214,7 @@ document.getElementById("banner").src = myPix[randomNum];
 		 </tr>
 	    </table>
     </td>
-    <td><table cellspacing=0 style="font-size: 0.5em">
+    <td><table cellspacing=0 style="font-size: 0.8em;">
 
     <tr><td class="tooltip" data-text="Donation mod: ${member["donationMod"]}" style="white-space:nowrap;" align=left>
     ${member["donations"]} / ${member["donationsReceived"]}
@@ -189,20 +223,20 @@ document.getElementById("banner").src = myPix[randomNum];
 
     % for w in member["wars"]:
     % if w==0:
-    <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:LightGray">&nbsp;</td></table></td>
+    <td style="font-size: 1em;"><table cellpadding=0 cellspacing=0><tr><td style="background-color:LightGray">&nbsp;</td></table></td>
     % elif w==1:
-    <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:Orange">&nbsp;</td></table></td>
+    <td style="font-size: 1em;"><table cellpadding=0 cellspacing=0><tr><td style="background-color:Orange">&nbsp;</td></table></td>
     % elif w==2:
-    <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:MediumSeaGreen">&nbsp;</td></table></td>
+    <td style="font-size: 1em;"><table cellpadding=0 cellspacing=0><tr><td style="background-color:MediumSeaGreen">&nbsp;</td></table></td>
     % elif w==-1:
-    <td><table cellpadding=0 cellspacing=0><tr><td style="background-color:Tomato">&nbsp;</td></table></td>
+    <td style="font-size: 1em;"><table cellpadding=0 cellspacing=0><tr><td style="background-color:Tomato">&nbsp;</td></table></td>
     % else:
     <td><table cellpadding=0 cellspacing=0><tr><td>${w}</td></table></td>
     % endif
     %endfor
     
-    <td align=left style="white-space:nowrap;font-size: 0.5em">Avg S: ${member["averageStars"]}<br>Avg D: ${member["averageDestruction"]}</td>
-    <td valign="middle">
+    <td align=left style="white-space:nowrap;font-size: 0.8em;">Avg S: ${member["averageStars"]}<br>Avg D: ${member["averageDestruction"]}</td>
+    <td width=20% valign="middle">
     % if member["lastThree"]==1:
        <img height=15 src="static/up-arrow.png">&nbsp;
     % endif
@@ -211,7 +245,7 @@ document.getElementById("banner").src = myPix[randomNum];
   %endfor
   
   
-  </table>  </form>
+  </table>  
   </td></tr>
 </table>
 <div id="timeDiv" style="font-size: 0.75em">${lastUpdated}</div>
@@ -224,5 +258,6 @@ document.getElementById("banner").src = myPix[randomNum];
    element.style.color = "#FF0000";
  }
  </script>
+ </div>
 </body>
 </html>

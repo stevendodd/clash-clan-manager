@@ -1,0 +1,468 @@
+
+<!DOCTYPE html>
+<html lang='en' xml:lang='en' xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+<meta charset='utf-8' />
+<meta content='en' name='language' />
+<meta content='width=device-width, initial-scale=1' name='viewport' />
+<link href="https://www.jqueryscript.net/css/jquerysctipttop.css"
+	rel="stylesheet" type="text/css">
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script src='/static/multifilter.js'></script>
+<script>    
+	function sortTable(n, type) {
+		var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+		table = document.getElementById("myTable2");
+		switching = true;
+		// Set the sorting direction to ascending:
+		dir = "asc";
+		/* Make a loop that will continue until
+		no switching has been done: */
+		while (switching) {
+			// Start by saying: no switching is done:
+			switching = false;
+			rows = table.rows;
+			/* Loop through all table rows (except the
+			first, which contains table headers): */
+			for (i = 1; i < (rows.length - 1); i++) {
+				// Start by saying there should be no switching:
+				shouldSwitch = false;
+				/* Get the two elements you want to compare,
+				one from current row and one from the next: */
+				x = rows[i].getElementsByTagName("TD")[n];
+				y = rows[i + 1].getElementsByTagName("TD")[n];
+				/* Check if the two rows should switch place,
+				based on the direction, asc or desc: */
+				if (dir == "asc") {
+					if (type == "numeric") {
+						if (Number(x.innerHTML.replace(/\D/g, '')) > Number(y.innerHTML
+								.replace(/\D/g, ''))) {
+							shouldSwitch = true;
+							break;
+						}
+					} else {
+						if (x.innerHTML.toLowerCase() > y.innerHTML
+								.toLowerCase()) {
+							// If so, mark as a switch and break the loop:
+							shouldSwitch = true;
+							break;
+						}
+					}
+				} else if (dir == "desc") {
+					if (type == "numeric") {
+						if (Number(x.innerHTML.replace(/\D/g, '')) < Number(y.innerHTML
+								.replace(/\D/g, ''))) {
+							shouldSwitch = true;
+							break;
+						}
+					} else {
+						if (x.innerHTML.toLowerCase() < y.innerHTML
+								.toLowerCase()) {
+							// If so, mark as a switch and break the loop:
+							shouldSwitch = true;
+							break;
+						}
+					}
+				}
+			}
+			if (shouldSwitch) {
+				/* If a switch has been marked, make the switch
+				and mark that a switch has been done: */
+				rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+				switching = true;
+				// Each time a switch is done, increase this count by 1:
+				switchcount++;
+			} else {
+				/* If no switching has been done AND the direction is "asc",
+				set the direction to "desc" and run the while loop again. */
+				if (switchcount == 0 && dir == "asc") {
+					dir = "desc";
+					switching = true;
+				}
+			}
+		}
+	}
+</script>
+<title>CWL</title>
+<link href='/static/style.css' media='screen' rel='stylesheet' type='text/css' />
+</head>
+<script type='text/javascript'>
+	//<![CDATA[
+	$(document).ready(function() {
+		$('.filter').multifilter({
+			'target' : $('#myTable2')
+		})
+	})
+	//]]>
+</script>
+<body
+	style="background-color: #000000; color: #ffffff; font-family: Verdana; font-size: 0.75em">
+
+
+	<table cellspacing=0 cellpadding=0>
+		<tr>
+			<td><img src="/static/badge.png"></td>
+			<td style="white-space: nowrap;" width=100%><div
+					style="display: flex; align-items: center; justify-content: flex-start;">
+					<b style="font-size: 1.75em">${clanDetails["name"]} Clan Manager</b>
+				</div></td>
+		</tr>
+	</table>
+
+	<div>
+		<a style="color: gold;" href='/'>Home</a> | <a style="color: gold;" href="/static/guidelines.html">Clan rules and information</a> | <a style="color: gold;"
+						href="https://www.clashofstats.com/clans/${clanDetails["tag"]}/wars/cwl/current/" target="_blank">Clash of Stats Clan War League</a> 
+		<p>
+	</div>
+	<div>
+
+		<section class="accordion">
+			<input type="checkbox" name="collapse" id="handle0" checked="checked">
+			<h3 class="handle">
+				<label for="handle0">Table</label>
+			</h3>
+			<div class="content">
+				<table style="border-spacing: 50px">
+					<tbody>
+					    % for i, clan in enumerate(results["clans"]):
+						<tr>
+							<td width=35%><div
+									style="display: flex; align-items: center; justify-content: flex-end;">${i+1}.</div></td>
+							<td nowrap>
+								<div
+									style="display: flex; align-items: center; justify-content: flex-start;">
+									<img
+										src="${clan["badgeUrls"]["small"]}"
+										height=25> &nbsp; <a style="color: gold;" href="https://www.clashofstats.com/clans/${clan["tag"].replace("#", "")}/summary" target="_blank">${clan["name"]}</a>
+								</div>
+							</td>
+							<td><div
+									style="display: flex; align-items: center; justify-content: flex-start;">
+									${clan["stars"]} <img src="/static/star.png" height=20>
+								</div></td>
+							<td>${clan["destruction"]}%</td>
+							<td width=35%><div
+									style="display: flex; align-items: center; justify-content: flex-start;">
+									<img src="/static/sword.png" height=20> &nbsp; ${clan["attacksRemaining"]} 
+								</div></td>
+						</tr>
+						%endfor
+					</tbody>
+				</table>
+			</div>
+		</section>
+
+		% for i, round in enumerate(rounds):
+		<section class="accordion">
+			<input type="checkbox" name="collapse" id="handle${i+1}" 
+			  % if currentRound==i+1: 
+			      checked=checked 
+			  % endif
+			  >
+			<h3 class="handle">
+				<label for="handle${i+1}">Round ${i+1} - ${round[0]["state"]}
+			  % if currentRound==i+1: 
+			      [${remainingTime} remaining]
+			  % endif
+				</label>
+			</h3>
+			<div class="content">
+
+				<table style="border-spacing: 50px">
+					<tbody>
+						% for war in round:
+						<tr>
+							<td align=right width=30% style="background-color: 
+							% if war["state"] == "warEnded":
+								% if war["clan"]["stars"] > war["opponent"]["stars"]:
+									#009500
+								% elif war["clan"]["stars"] < war["opponent"]["stars"]:
+									#950000
+								% else:		
+									% if war["clan"]["destructionPercentage"] > war["opponent"]["destructionPercentage"]:
+										#009500
+									% elif war["clan"]["destructionPercentage"] < war["opponent"]["destructionPercentage"]:
+										#950000
+									% endif	
+								% endif
+							% else:
+								#E67E22
+							% endif
+							">
+								<div
+									style="display: flex; align-items: center; justify-content: flex-end;">
+									<img
+										src="${war["clan"]["badgeUrls"]["small"]}"
+										height=25> &nbsp; ${war["clan"]["name"]}
+								</div>
+							</td>
+							<td align=right nowrap style="background-color:
+							% if war["state"] == "warEnded":
+								% if war["clan"]["stars"] > war["opponent"]["stars"]:
+									#009500
+								% elif war["clan"]["stars"] < war["opponent"]["stars"]:
+									#950000
+								% else:		
+									% if war["clan"]["destructionPercentage"] > war["opponent"]["destructionPercentage"]:
+										#009500
+									% elif war["clan"]["destructionPercentage"] < war["opponent"]["destructionPercentage"]:
+										#950000
+									% endif	
+								% endif
+							% else:
+								#E67E22
+							% endif
+							"><div
+									style="display: flex; align-items: center; justify-content: flex-end;">
+									<img src="/static/sword.png" height=20>${war["clan"]["attacks"]}
+								</div></td>
+							<td align=right style="background-color:
+							% if war["state"] == "warEnded":
+								% if war["clan"]["stars"] > war["opponent"]["stars"]:
+									#009500
+								% elif war["clan"]["stars"] < war["opponent"]["stars"]:
+									#950000
+								% else:		
+									% if war["clan"]["destructionPercentage"] > war["opponent"]["destructionPercentage"]:
+										#009500
+									% elif war["clan"]["destructionPercentage"] < war["opponent"]["destructionPercentage"]:
+										#950000
+									% endif	
+								% endif
+							% else:
+								#E67E22
+							% endif
+							">${war["clan"]["destructionPercentage"]}%</td>
+							<td align=right nowrap style="background-color: 
+							% if war["state"] == "warEnded":
+								% if war["clan"]["stars"] > war["opponent"]["stars"]:
+									#009500
+								% elif war["clan"]["stars"] < war["opponent"]["stars"]:
+									#950000
+								% else:		
+									% if war["clan"]["destructionPercentage"] > war["opponent"]["destructionPercentage"]:
+										#009500
+									% elif war["clan"]["destructionPercentage"] < war["opponent"]["destructionPercentage"]:
+										#950000
+									% endif	
+								% endif
+							% else:
+								#E67E22
+							% endif
+							"><div
+									style="display: flex; align-items: center; justify-content: flex-end;">
+									${war["clan"]["stars"]} &nbsp; <img src="/static/star.png" height=20>
+								</div></td>
+							<td></td>
+							<td nowrap style="background-color:
+							% if war["state"] == "warEnded":
+								% if war["clan"]["stars"] < war["opponent"]["stars"]:
+									#009500
+								% elif war["clan"]["stars"] > war["opponent"]["stars"]:
+									#950000
+								% else:		
+									% if war["clan"]["destructionPercentage"] < war["opponent"]["destructionPercentage"]:
+										#009500
+									% elif war["clan"]["destructionPercentage"] > war["opponent"]["destructionPercentage"]:
+										#950000
+									% endif	
+								% endif
+							% else:
+								#E67E22
+							% endif
+							">
+								<div
+									style="display: flex; align-items: center; justify-content: flex-start;">
+									<img src="/static/star.png" height=20> &nbsp; ${war["opponent"]["stars"]}
+								</div>
+							</td>
+							<td nowrap style="background-color:
+							% if war["state"] == "warEnded":
+								% if war["clan"]["stars"] < war["opponent"]["stars"]:
+									#009500
+								% elif war["clan"]["stars"] > war["opponent"]["stars"]:
+									#950000
+								% else:		
+									% if war["clan"]["destructionPercentage"] < war["opponent"]["destructionPercentage"]:
+										#009500
+									% elif war["clan"]["destructionPercentage"] > war["opponent"]["destructionPercentage"]:
+										#950000
+									% endif	
+								% endif
+							% else:
+								#E67E22
+							% endif
+							">${war["opponent"]["destructionPercentage"]}%</td>
+							<td nowrap style="background-color:
+							% if war["state"] == "warEnded":
+								% if war["clan"]["stars"] < war["opponent"]["stars"]:
+									#009500
+								% elif war["clan"]["stars"] > war["opponent"]["stars"]:
+									#950000
+								% else:		
+									% if war["clan"]["destructionPercentage"] < war["opponent"]["destructionPercentage"]:
+										#009500
+									% elif war["clan"]["destructionPercentage"] > war["opponent"]["destructionPercentage"]:
+										#950000
+									% endif	
+								% endif
+							% else:
+								#E67E22
+							% endif
+							"><div
+									style="display: flex; align-items: center; justify-content: flex-start;">
+									${war["opponent"]["attacks"]}<img src="/static/sword.png" height=20>
+								</div></td>
+							<td width=30% style="background-color:
+							% if war["state"] == "warEnded":
+								% if war["clan"]["stars"] < war["opponent"]["stars"]:
+									#009500
+								% elif war["clan"]["stars"] > war["opponent"]["stars"]:
+									#950000
+								% else:		
+									% if war["clan"]["destructionPercentage"] < war["opponent"]["destructionPercentage"]:
+										#009500
+									% elif war["clan"]["destructionPercentage"] > war["opponent"]["destructionPercentage"]:
+										#950000
+									% endif	
+								% endif
+							% else:
+								#E67E22
+							% endif
+							"><div
+									style="display: flex; align-items: center; justify-content: flex-start;">
+									${war["opponent"]["name"]} &nbsp; <img
+										src="${war["opponent"]["badgeUrls"]["small"]}"
+										height=25>
+								</div></td>
+						</tr>
+						% endfor
+					</tbody>
+				</table>
+
+
+			</div>
+		</section>
+		%endfor
+
+	</div>
+	<div>
+		<p>
+	</div>
+
+	<section class="accordion">
+		<input type="checkbox" name="collapse" id="handle8" checked="checked">
+		<h3 class="handle">
+			<label for="handle8">Players</label>
+		</h3>
+		<div class="content">
+
+			<p>
+			<div class='container'>
+				<div class='filters'>
+					<div class='filter-container'>
+						<input autocomplete='off' class='filter' name='clan'
+							id="clan" placeholder='clan' data-col='clan' />
+					</div>
+					<div class='filter-container'>
+						<input autocomplete='off' class='filter' name='name'
+							placeholder='name' data-col='name' />
+					</div>
+
+					<div class='clearfix'></div>
+				</div>
+			</div>
+			<div class='container' style="font-size: 0.75em">
+				<table id="myTable2">
+					<thead>
+						<th onclick="sortTable(0,'alphabetical')">Clan <img
+							src="/static/sortable.png" width=6></th>
+						<th onclick="sortTable(1,'alphabetical')">Name <img
+							src="/static/sortable.png" width=6></th>
+						<th>R1</th>
+						<th>R2</th>
+						<th>R3</th>
+						<th>R4</th>
+						<th>R5</th>
+						<th>R6</th>
+						<th>R7</th>
+						<th>Total</th>
+						<th onclick="sortTable(10,'numeric')">Rank <img
+							src="/static/sortable.png" width=6></th>
+						<th onclick="sortTable(11,'numeric')">Mod <img
+							src="/static/sortable.png" width=6></th>
+					</thead>
+					<tbody>
+						% for member in results["players"]:
+						<tr
+						%if member["townHallLevel"] == 15:
+						  style="background-color: #7703D3"
+						%elif member["townHallLevel"] == 14:
+						  style="background-color: #06B678"
+						%elif member["townHallLevel"] == 13:
+						  style="background-color: #04B2BB"
+						%elif member["townHallLevel"] == 12:
+						  style="background-color: #0686D4"
+						%endif
+						>
+							<td nowrap>${member["clan"]}</td>
+							<td nowrap><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"]}.replace("#", "")}/summary" target="_blank">${member["name"]}</a></td>
+							
+							% if "0" in member["rounds"]:
+								<td nowrap>A: ${member["rounds"]["0"]["starsAttack"]}<br>D: ${member["rounds"]["0"]["starsDefense"]}</td>\
+							% else:
+								<td></td>
+							% endif
+							% if "1" in member["rounds"]:
+								<td nowrap>A: ${member["rounds"]["1"]["starsAttack"]}<br>D: ${member["rounds"]["1"]["starsDefense"]}</td>\
+							% else:
+								<td></td>
+							% endif
+							% if "2" in member["rounds"]:
+								<td nowrap>A: ${member["rounds"]["2"]["starsAttack"]}<br>D: ${member["rounds"]["2"]["starsDefense"]}</td>\
+							% else:
+								<td></td>
+							% endif
+							% if "3" in member["rounds"]:
+								<td nowrap>A: ${member["rounds"]["3"]["starsAttack"]}<br>D: ${member["rounds"]["3"]["starsDefense"]}</td>\
+							% else:
+								<td></td>
+							% endif
+							% if "4" in member["rounds"]:
+								<td nowrap>A: ${member["rounds"]["4"]["starsAttack"]}<br>D: ${member["rounds"]["4"]["starsDefense"]}</td>\
+							% else:
+								<td></td>
+							% endif
+							% if "5" in member["rounds"]:
+								<td nowrap>A: ${member["rounds"]["5"]["starsAttack"]}<br>D: ${member["rounds"]["5"]["starsDefense"]}</td>\
+							% else:
+								<td></td>
+							% endif
+							% if "6" in member["rounds"]:
+								<td nowrap>A: ${member["rounds"]["6"]["starsAttack"]}<br>D: ${member["rounds"]["6"]["starsDefense"]}</td>\
+							% else:
+								<td></td>
+							% endif
+
+							<td nowrap>A: ${member["totalAttackStars"]} (${member["totalAttackDestruction"]}%)<br>D: ${member["totalDefenseStars"]} (${member["totalDefenseDestruction"]}%)
+							</td>
+							<td nowrap>${member["rank"]}</td>
+							
+							<td>
+							% if "cwlDonationMod" in member:
+							  ${member["rank"] + member["cwlDonationMod"]}
+							% endif
+							  </td>
+						</tr>
+						% endfor
+					</tbody>
+				</table>
+
+			</div>
+	</section>
+
+
+	</div>
+</body>
+</html>

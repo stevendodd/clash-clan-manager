@@ -22,6 +22,7 @@ token = ""
 clanTag = ""
 notesKey = ""
 page = ""
+cwlPage = ""
 updateMember = 0
 day = int(datetime.now().strftime("%d"))
 warLeagueEndDay = 8
@@ -37,6 +38,7 @@ notesDataFile = "data/notes.json"
 
 homeHeader = "data/content.html"
 homeTemplate = "templates/home.html"
+cwlTemplate = "templates/cwl.html"
 notesTemplate = "notes.html"
 warningTemplate = "warning.html"
 
@@ -92,7 +94,7 @@ def main():
         "warlog": "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/warlog?limit=20",
         
         "league": "https://api.clashofclans.com/v1/clans/%23" + clanTag + "/currentwar/leaguegroup",
-        "leagueRound": "https://api.clashofclans.com/v1/clanwarleagues/wars/",
+        "leagueRound": "https://api.clashofclans.com/v1/clanwarleagues/wars/%23",
         "player": "https://api.clashofclans.com/v1/players/%23",
         "season": "https://api.clashofclans.com/v1/goldpass/seasons/current"
     }
@@ -133,6 +135,11 @@ def getApiData():
     response = requests.get(latestClan["badgeUrls"]["small"])
     if response.status_code == 200:
         open('static/badge.png', 'wb').write(response.content)
+        
+    latestWarLeague = {}
+    response = requests.get(apiUrls["league"], headers={'Authorization': 'Bearer ' + token})
+    if response.status_code == 200 and response.json():
+        latestWarLeague = response.json()
     
     latestWarLog = {}
     response = requests.get(apiUrls["warlog"], headers={'Authorization': 'Bearer ' + token})
@@ -152,6 +159,7 @@ def getApiData():
             
     return({"updateMember": updateMember, 
             "currentWar": latestCurrentWar,
+            "warLeague": latestWarLeague,
             "clan": latestClan,
             "warLog": latestWarLog,
             "players": latestPlayers})  
@@ -160,6 +168,150 @@ def update():
     global clan, day
     
     latestApiData = getApiData()
+    
+    basePath = path = "data/cwl/"
+    if "season" in latestApiData["warLeague"]:
+        path = path + latestApiData["warLeague"]["season"]
+        if not os.path.exists(path):
+            os.makedirs(path)
+            
+        writeJson(path + "/league.json", latestApiData["warLeague"])
+        
+        for r in latestApiData["warLeague"]["rounds"]:
+            for tag in r["warTags"]:
+                if tag != "#0":  
+                    response = requests.get(apiUrls["leagueRound"] + tag.strip("#"), headers={'Authorization': 'Bearer ' + token})
+                    if response.status_code == 200 and response.json():
+                        writeJson(path + "/" + tag.strip("#") + ".json", response.json())
+    
+    latestCWL = max([os.path.join(basePath,d) for d in os.listdir(basePath) 
+                     if os.path.isdir(os.path.join(basePath, d))], key=os.path.getmtime)
+    if os.path.exists(latestCWL + "/league.json"):
+        f = open(latestCWL + "/league.json")
+        latestApiData["warLeague"] = json.load(f) 
+        
+    results = {}
+    results["clans"] = []
+    results["players"] = []
+    for leagueClan in latestApiData["warLeague"]["clans"]:
+        results["clans"].append({"tag": leagueClan["tag"], 
+                                 "name": leagueClan["name"],
+                                 "badgeUrls": leagueClan["badgeUrls"], 
+                                 "stars": 0, 
+                                 "attacks": 0, 
+                                 "destruction": 0,
+                                 "attacksRemaining": 0
+                                 })
+    
+    currentRound = 0
+    remainingTime = ""
+    rounds = []
+    for i, r in enumerate(latestApiData["warLeague"]["rounds"]):
+        roundData = []
+        for tag in r["warTags"]:
+            if tag != "#0":                   
+                roundWar = {}
+                #response = requests.get(apiUrls["leagueRound"] + tag.strip("#"), headers={'Authorization': 'Bearer ' + token})
+                #if response.status_code == 200 and response.json():
+                app.logger.debug("Looking for war " + latestCWL + "/" + tag.strip("#") + ".json")
+                if os.path.exists(latestCWL + "/" + tag.strip("#") + ".json"):
+                    #roundWar = response.json()
+                    #writeJson(path + "/" + tag.strip("#") + ".json", roundWar)
+                    f = open(latestCWL + "/" + tag.strip("#") + ".json")
+                    roundWar = json.load(f)
+                    roundData.append(roundWar)
+                    app.logger.debug("Found war " + tag.strip("#"))
+                    
+                    if roundWar["state"] == "inWar":
+                        currentRound = i+1
+                        endTime = datetime.strptime(roundWar["endTime"], '%Y%m%dT%H%M%S.000Z')
+                        remainingTime = endTime - datetime.utcnow()
+                        remainingTime = str(remainingTime).split(".")[0]
+                        
+                        for c in results["clans"]:
+                            if c["tag"] == roundWar["clan"]["tag"]:
+                                c["attacksRemaining"] = roundWar["teamSize"] - roundWar["clan"]["attacks"]
+                            if c["tag"] == roundWar["opponent"]["tag"]:
+                                c["attacksRemaining"] = roundWar["teamSize"] - roundWar["opponent"]["attacks"]
+                     
+                    if roundWar["state"] != "preparation":
+                        for m in roundWar["clan"]["members"]:
+                            found = False
+                            for p in results["players"]:
+                                if m["tag"] == p["tag"]:
+                                    p = processCWLPlayer(i, m, p, roundWar["clan"]["name"])
+                                    found = True
+                                    break
+                            
+                            if not found:  
+                                results["players"].append(processCWLPlayer(i, m, {}, roundWar["clan"]["name"]))
+
+                        for m in roundWar["opponent"]["members"]:
+                            found = False
+                            for p in results["players"]:
+                                if m["tag"] == p["tag"]:
+                                    p = processCWLPlayer(i, m, p, roundWar["opponent"]["name"])
+                                    found = True
+                                    break
+                            
+                            if not found:  
+                                results["players"].append(processCWLPlayer(i, m, {}, roundWar["opponent"]["name"]))
+
+                    winner = ""
+                    if roundWar["state"] == "warEnded":
+                        if roundWar["clan"]["stars"] > roundWar["opponent"]["stars"]:
+                            winner = "clan"
+                        elif roundWar["clan"]["stars"] < roundWar["opponent"]["stars"]:
+                            winner = "opponent"
+                        else:
+                            if roundWar["clan"]["destructionPercentage"] > roundWar["opponent"]["destructionPercentage"]:
+                                winner = "clan"
+                            elif roundWar["clan"]["destructionPercentage"] < roundWar["opponent"]["destructionPercentage"]:
+                                winner = "opponent"
+                    
+                    for leagueClan in results["clans"]:
+                        if leagueClan["tag"] == roundWar["clan"]["tag"]:
+                            leagueClan["stars"] += roundWar["clan"]["stars"]
+                            leagueClan["attacks"] += roundWar["clan"]["attacks"]
+                            leagueClan["destruction"] += roundWar["clan"]["destructionPercentage"]
+                            if winner == "clan":
+                                leagueClan["stars"] += 10
+                            
+                        if leagueClan["tag"] == roundWar["opponent"]["tag"]:
+                            leagueClan["stars"] += roundWar["opponent"]["stars"]
+                            leagueClan["attacks"] += roundWar["opponent"]["attacks"]
+                            leagueClan["destruction"] += roundWar["opponent"]["destructionPercentage"]
+                            if winner == "opponent":
+                                leagueClan["stars"] += 10
+                        
+                        leagueClan["destruction"] = round(leagueClan["destruction"],2)
+                        roundWar["clan"]["destructionPercentage"] = round(roundWar["clan"]["destructionPercentage"],2)
+                        roundWar["opponent"]["destructionPercentage"] = round(roundWar["opponent"]["destructionPercentage"],2)
+                    
+        if len(roundData) > 0:
+            rounds.append(roundData)
+    
+    cwlDonationMod = 0
+    if clan["members"]:
+        for p in results["players"]:
+            for m in clan["members"]:
+                if p["tag"] == m["tag"]:
+                    if "cwlRankMod" in m:
+                       cwlDonationMod = m["cwlRankMod"]
+            p["cwlDonationMod"] = cwlDonationMod
+    
+    results["clans"].sort(reverse=True, key=sortStars)
+    results["players"].sort(reverse=True, key=sortCWLRank)
+    
+    global cwlPage
+    mytemplate = Template(filename=cwlTemplate) 
+
+    cwlPage = mytemplate.render(cwl=latestApiData["warLeague"],
+                                currentRound=currentRound,
+                                remainingTime=remainingTime,
+                                rounds=rounds,
+                                results=results,
+                                clanDetails=clanDetails)        
     
     if obtainLock():
         try:
@@ -172,13 +324,18 @@ def update():
             # Detect donation reset
             if "clan" in clan:
                 resetDetected = False
+                rcounter = 0
                 for ml in latestApiData["clan"]["memberList"]:
                     if (not resetDetected) and ml["donationsReceived"] == 0 and ml["donations"] == 0:
                         for m in clan["clan"]["memberList"]:
                             if m["tag"] == ml["tag"]:
                                 if m["donationsReceived"] > 0 or m["donations"] > 0:
-                                    resetDetected = True
+                                    rcounter += 1
                                     break
+                                    
+                            if rcounter >= 5:
+                                resetDetected = True
+                                break
                                 
                 if resetDetected:
                     setPreviousDonations()
@@ -249,6 +406,9 @@ def update():
                             
                         if "prevDonation" in m:
                             member["prevDonation"] = m["prevDonation"]
+                            
+                        if "cwlRankMod" in m:
+                            member["cwlRankMod"] = m["cwlRankMod"]
                             
                         app.logger.debug("Updating [" + str(currentMember + 1) + "|" + str(len(clan["clan"]["memberList"])) + "] " + clan["clan"]["memberList"][currentMember]["name"] + ": " + str(member))
                         clan["members"][i] = member
@@ -387,7 +547,7 @@ def processResults():
                 m["prevDonations"] = prevDonation  
                 break
         
-        donationMod = 0        
+        donationMod = cwlRankMod = 0        
         if day <= warLeagueEndDay or clan["seasonEnd"]:
             donationsReceived = prevDonationsReceived
             donations = prevDonation
@@ -403,14 +563,23 @@ def processResults():
             donationMod = 0.05
         elif abs(donationsReceived - donations) > 250:
             donationMod = 0.025
-            
+                    
+        if donationMod == 0.1:
+            cwlRankMod = 2
+        elif donationMod >= 0.05:
+            cwlRankMod = 1
+
         if donations < donationsReceived:
             donationMod = donationMod * -1
-            
+        
         if donationMod >= 0:
             m["donationMod"] = "+" + str(donationMod*100) + "%"
+            if day <= warLeagueEndDay:
+                p["cwlRankMod"] = cwlRankMod
         else:
             m["donationMod"] = "-" + str(donationMod*100*-1) + "%"
+            if day <= warLeagueEndDay:
+                p["cwlRankMod"] = cwlRankMod*-1
 
         donationMod += 1   
             
@@ -419,7 +588,7 @@ def processResults():
 
             
     global page
-    content = loadContent()
+    #content = loadContent()
     mytemplate = Template(filename=homeTemplate)        
     members.sort(reverse=True, key=sortMembers)
     
@@ -439,11 +608,62 @@ def processResults():
     
     page = mytemplate.render(clan=clanDetails,
                              members=members, 
-                             content=content, 
+                             #content=content, 
                              warlog=clan["warLog"]["items"], 
                              warState=clan["warLog"]["currentState"],
                              lastUpdated=clan["lastUpdated"]
                              )
+
+def processCWLPlayer(i, m, player, clan):
+    player["tag"] = m["tag"]
+    player["name"] = m["name"]
+    player["clan"] = clan
+    player["townHallLevel"] = m["townhallLevel"]
+    
+    if not "rounds" in player:
+        player["rounds"] = {}
+        
+    if not "roundsIn" in player:
+        player["roundsIn"] = 0
+    
+    warData = {}
+    if "attacks" in m:
+        warData["starsAttack"] = m["attacks"][0]["stars"]
+        warData["destructionAttack"] = m["attacks"][0]["destructionPercentage"]
+        player["roundsIn"] += 1
+    else:
+        warData["starsAttack"] = "-"
+        
+    if "bestOpponentAttack" in m:
+        warData["starsDefense"] = m["bestOpponentAttack"]["stars"]
+        warData["destructionDefense"] = m["bestOpponentAttack"]["destructionPercentage"]
+    else:
+        warData["starsDefense"] = "-"
+        
+    player["rounds"][str(i)] = warData
+    
+    totalAttackStars = totalDefenseStars = totalAttackDestruction = totalDefenseDestruction = 0
+    for key,pr in player["rounds"].items():
+        if "starsAttack" in pr:
+            if pr["starsAttack"] != "-":
+                totalAttackStars += pr["starsAttack"]
+                    
+        if "starsDefense" in pr:
+            if pr["starsDefense"] != "-":
+                totalDefenseStars += pr["starsDefense"]
+        if "destructionAttack" in pr:
+            totalAttackDestruction += pr["destructionAttack"]
+        if "destructionDefense" in pr:
+            totalDefenseDestruction += pr["destructionDefense"]
+    
+    player["totalAttackStars"] = totalAttackStars
+    player["totalDefenseStars"] = totalDefenseStars
+    player["totalAttackDestruction"] = totalAttackDestruction
+    player["totalDefenseDestruction"] = totalDefenseDestruction
+    
+    player["rank"] = 30 + (3*totalAttackStars) - totalDefenseStars + player["roundsIn"]
+    
+    return(player)  
 
 def setPreviousDonations():
     global clan
@@ -587,6 +807,12 @@ def sortMembers(e):
 def sortMembersLastThree(e):
     return e["lastThreeRank"]
 
+def sortStars(e):
+    return( e["stars"],e["destruction"])
+
+def sortCWLRank(e):
+    return( e["rank"],e["totalAttackStars"],e["totalAttackDestruction"])
+
 class PostForm(FlaskForm):
     post = TextAreaField('Write something')
     key = HiddenField()
@@ -702,6 +928,10 @@ def post():
 @app.route("/",methods = ['GET'])
 def hello():
     return(page)
+
+@app.route("/cwl",methods = ['GET'])
+def cwl():
+    return(cwlPage)
 
 @app.route("/clan",methods = ['GET'])
 def showData():
