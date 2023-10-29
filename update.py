@@ -764,8 +764,9 @@ def obtainLock():
         count += 1
         
         if count > 10:
-            raise Exception("Couldn't obtain lock")
-            return False
+            #raise Exception("Couldn't obtain lock")
+            #return False
+            break
         
     clan["updateLock"] = True
     return True

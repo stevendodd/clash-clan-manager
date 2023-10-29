@@ -407,7 +407,7 @@
 						%endif
 						>
 							<td nowrap>${member["clan"]}</td>
-							<td nowrap><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"]}.replace("#", "")}/summary" target="_blank">${member["name"]}</a></td>
+							<td nowrap><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary" target="_blank">${member["name"]}</a></td>
 							
 							% if "0" in member["rounds"]:
 								<td nowrap>A: ${member["rounds"]["0"]["starsAttack"]}<br>D: ${member["rounds"]["0"]["starsDefense"]}</td>\
