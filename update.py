@@ -178,7 +178,8 @@ def update():
     if "season" in latestApiData["warLeague"]:
         path = path + latestApiData["warLeague"]["season"]
         if not os.path.exists(path):
-            os.makedirs(path)
+            #os.makedirs(path)
+            os.makedirs(path + "/tmp")
             
         writeJson(path + "/league.json", latestApiData["warLeague"])
         

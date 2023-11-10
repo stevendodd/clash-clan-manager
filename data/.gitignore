@@ -9,4 +9,4 @@
 /logs/
 /mydata.json.BK.json
 /cwl/
-!/cwl/tmp
+!/cwl/tmp/*
