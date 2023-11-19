@@ -17,6 +17,8 @@ from json import loads as json_loads
 from base64 import b64decode as base64_b64decode
 from logging.handlers import RotatingFileHandler
 from logging.config import dictConfig
+import email
+from _curses import keyname
 
 token = ""
 clanTag = ""
@@ -120,10 +122,18 @@ def main():
     app.config['SECRET_KEY'] = SECRET_KEY
 
 def getApiData():
-    global updateMember
+    global updateMember, token
         
     latestCurrentWar = {}
     response = requests.get(apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + token})
+    
+    if response.status_code == 403:
+        app.logger.debug("Attempting to refresh token")
+        if os.path.exists(configFile):
+            c = json.load(open(configFile))
+            token = getToken(c["email"],c["password"],c["keyName"])
+            response = requests.get(apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + token})
+        
     if response.status_code == 200 and "preparationStartTime" in response.json():
         latestCurrentWar = response.json()
     
