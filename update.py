@@ -472,6 +472,7 @@ def processResults():
             m["role"] = "E"
          
         windex=-1
+        rankHistory = 8
         rank = lastThreeRank = stars = attacks = destrution = missedAttackCounter = 0
         for w in clan["wars"]:
             if w["state"] == "warEnded":
@@ -483,7 +484,8 @@ def processResults():
                             
                         if "attacks" in wm:
                             m["wars"][windex] = len(wm["attacks"])
-                            rank += m["wars"][windex]
+                            if windex < rankHistory:
+                                rank += m["wars"][windex]
                             
                             if len(wm["attacks"]) == 1:
                                 wdate = datetime.strptime(w["endTime"], '%Y%m%dT%H%M%S.000Z')
@@ -510,11 +512,12 @@ def processResults():
                                 stars += int(a["stars"])
                                 destrution += int(a["destructionPercentage"])
                                 attacks += 1
-                                                                   
-                                if wm["mapPosition"] - dMapPosition > -3:
-                                    rank += bonus
-                                else:
-                                    rank += bonus * 0.75   
+                                
+                                if windex < rankHistory:                                   
+                                    if wm["mapPosition"] - dMapPosition > -3:
+                                        rank += bonus
+                                    else:
+                                        rank += bonus * 0.75   
 
                         else:
                             m["wars"][windex] = -1
