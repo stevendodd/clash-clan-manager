@@ -578,7 +578,7 @@ def processResults():
             donationsReceived = m["donationsReceived"]
             donations = m["donations"]
             
-        if abs(donationsReceived - donations) > 1500:
+        """if abs(donationsReceived - donations) > 1500:
             donationMod = 0.1
         elif abs(donationsReceived - donations) > 1000:
             donationMod = 0.075
@@ -604,11 +604,16 @@ def processResults():
             if day <= warLeagueEndDay:
                 p["cwlRankMod"] = cwlRankMod*-1
 
-        donationMod += 1   
+        donationMod += 1   """
+        m["donationMod"] = "+" + str(int(donations/100))
+        p["cwlRankMod"] = int(donations/2000)
+        if p["cwlRankMod"] > 6:
+            p["cwlRankMod"] = 6
             
-        m["rank"] = int(donationMod*rank*100)
-        m["lastThreeRank"] = int(donationMod*lastThreeRank*100)
-
+        #m["rank"] = int(donationMod*rank*100)
+        #m["lastThreeRank"] = int(donationMod*lastThreeRank*100)
+        m["rank"] = int((donations/100)+(rank*100))
+        m["lastThreeRank"] = int((donations/100)+(lastThreeRank*100))
             
     global page
     #content = loadContent()
