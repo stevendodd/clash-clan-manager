@@ -27,7 +27,7 @@ page = ""
 cwlPage = ""
 updateMember = 0
 day = int(datetime.now().strftime("%d"))
-warLeagueEndDay = 8
+warLeagueEndDay = 10
 
 clanDetails = {}
 clan = {}
@@ -357,7 +357,7 @@ def update():
                                 resetDetected = True
                                 break
                                 
-                if resetDetected:
+                if resetDetected and day <= warLeagueEndDay:
                     setPreviousDonations()
                     
             if day <= warLeagueEndDay or "seasonEnd" not in clan:
