@@ -396,7 +396,9 @@
 					<tbody>
 						% for member in results["players"]:
 						<tr
-						%if member["townHallLevel"] == 15:
+						%if member["townHallLevel"] == 16:
+						  style="background-color: #E67E22"
+						%elif member["townHallLevel"] == 15:
 						  style="background-color: #7703D3"
 						%elif member["townHallLevel"] == 14:
 						  style="background-color: #06B678"
