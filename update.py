@@ -639,7 +639,8 @@ def processResults():
                              #content=content, 
                              warlog=clan["warLog"]["items"], 
                              warState=clan["warLog"]["currentState"],
-                             lastUpdated=clan["lastUpdated"]
+                             lastUpdated=clan["lastUpdated"],
+                             banners=getBanners()
                              )
 
 def processCWLPlayer(i, m, player, clan):
@@ -718,6 +719,16 @@ def pruneBackups():
         if os.path.getmtime(os.path.join(path, filename)) < now - 7 * 86400:
             if os.path.isfile(os.path.join(path, filename)):
                 os.remove(os.path.join(path, filename))
+                
+def getBanners():
+    path = "static/banners"
+    banners = []
+    
+    for filename in os.listdir(path):
+        banners.append(filename)
+        
+    return(banners)
+        
         
 def getToken(email,password,key_names):
     key_count = 1

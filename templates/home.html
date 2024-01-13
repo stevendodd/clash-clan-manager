@@ -4,6 +4,7 @@
 <head>
 <meta charset='utf-8' />
 <meta content='en' name='language' />
+<link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 <meta content='width=device-width, initial-scale=1' name='viewport' />
 <link href="https://www.jqueryscript.net/css/jquerysctipttop.css"
 	rel="stylesheet" type="text/css">
@@ -63,16 +64,14 @@
 
 	<table>
 		<tr>
-			<td nowrap><img id="banner" src="static/banner1.png"
+			<td nowrap><img id="banner" src="static/banner/banner1.png"
 				alt="Clash of Clans Clan Manager" width=95%> <script
 					type="text/javascript">
-					var myPix = new Array("/static/banner1.png",
-							"/static/banner2.png", "/static/banner3.png",
-							"/static/banner4.png", "/static/banner5.png",
-							"/static/banner6.png", "/static/banner7.png",
-							"/static/banner8.png", "/static/banner9.png",
-							"/static/banner10.png", "/static/banner11.png", 
-							"/static/banner12.png", "/static/banner13.png",);
+					var myPix = new Array(
+							% for b in banners:
+							  "/static/banners/${b}",
+							% endfor
+							);
 					var randomNum = Math.floor(Math.random() * myPix.length);
 					document.getElementById("banner").src = myPix[randomNum];
 				</script>

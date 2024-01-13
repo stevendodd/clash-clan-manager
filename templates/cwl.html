@@ -4,6 +4,7 @@
 <head>
 <meta charset='utf-8' />
 <meta content='en' name='language' />
+<link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 <meta content='width=device-width, initial-scale=1' name='viewport' />
 <link href="https://www.jqueryscript.net/css/jquerysctipttop.css"
 	rel="stylesheet" type="text/css">
@@ -397,7 +398,7 @@
 						% for member in results["players"]:
 						<tr
 						%if member["townHallLevel"] == 16:
-						  style="background-color: #E67E22"
+						  style="background-color: #FEBA29"
 						%elif member["townHallLevel"] == 15:
 						  style="background-color: #7703D3"
 						%elif member["townHallLevel"] == 14:
@@ -409,7 +410,14 @@
 						%endif
 						>
 							<td nowrap>${member["clan"]}</td>
-							<td nowrap><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary" target="_blank">${member["name"]}</a></td>
+							<td nowrap><a 
+							%if member["townHallLevel"] == 16:
+							  style="color: black;" 
+							%else:
+							  style="color: gold;" 
+							%endif
+							
+							 href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary" target="_blank">${member["name"]}</a></td>
 							
 							% if "0" in member["rounds"]:
 								<td nowrap>A: ${member["rounds"]["0"]["starsAttack"]}<br>D: ${member["rounds"]["0"]["starsDefense"]}</td>\
