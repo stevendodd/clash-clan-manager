@@ -9,6 +9,11 @@ body {
   background: #c8c8c8;
   color: #02151a; }
 #homeContainer { width: 600px; }
+@media only screen and (max-width: 768px) {
+  /* For mobile phones: */
+  #homeContainer { width: 100%; }
+}
+
 
 .hero {
   margin-bottom: 40px; }

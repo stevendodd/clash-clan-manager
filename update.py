@@ -1,7 +1,7 @@
 from flask import Flask, app
 from flask import request, redirect, render_template
 from flask_wtf import FlaskForm
-from wtforms import (StringField, TextAreaField, HiddenField, SubmitField)
+from wtforms import (StringField, TextAreaField, HiddenField, BooleanField, SubmitField)
 from wtforms.validators import InputRequired, Length
 from mako.template import Template
 import requests
@@ -28,6 +28,7 @@ cwlPage = ""
 updateMember = 0
 day = int(datetime.now().strftime("%d"))
 warLeagueEndDay = 10
+rankHistory = 10
 
 clanDetails = {}
 clan = {}
@@ -78,7 +79,7 @@ dictConfig(
 app = Flask(__name__)
 
 def main():
-    global token, clanDetails, clanTag, notesKey, clan, app, apiUrls
+    global token, clanDetails, clanTag, notesKey, rankHistory, clan, app, apiUrls
     
     if os.path.exists(configFile):
         f = open(configFile)
@@ -88,6 +89,10 @@ def main():
         key_name = c["keyName"]
         clanTag = c["clanTag"]
         notesKey = c["key"]
+        
+        if "history" in c:
+            rankHistory = c["history"]
+            
         token = getToken(email,password,key_name)
     
     apiUrls = {
@@ -107,6 +112,7 @@ def main():
     
     clanDetails["name"] = response.json()["name"]
     clanDetails["tag"] = clanTag
+    clanDetails["rankHistory"] = rankHistory
 
     clan = readData()
     writeJson(backupFile,clan)
@@ -356,13 +362,13 @@ def update():
                             if rcounter >= 5:
                                 resetDetected = True
                                 break
+                            
+                if day <= warLeagueEndDay or "seasonEnd" not in clan:
+                    clan["seasonEnd"] = False
                                 
-                if resetDetected and day <= warLeagueEndDay:
+                if resetDetected and day > warLeagueEndDay:
                     setPreviousDonations()
-                    
-            if day <= warLeagueEndDay or "seasonEnd" not in clan:
-                clan["seasonEnd"] = False
-            
+                           
             # Update current war data
             if "preparationStartTime" in latestApiData["currentWar"]:
                 if len(clan["wars"])>0 and clan["wars"][0]["preparationStartTime"] == latestApiData["currentWar"]["preparationStartTime"]:
@@ -383,9 +389,9 @@ def update():
             # Only keep last 10 wars
             if len(clan["wars"]) > 0:
                 if clan["wars"][0]['state'] != "warEnded":       
-                    clan["wars"] = trimList(clan["wars"],11)
+                    clan["wars"] = trimList(clan["wars"],rankHistory+1)
                 else:
-                    clan["wars"] = trimList(clan["wars"],10)
+                    clan["wars"] = trimList(clan["wars"],rankHistory)
                 
             # Update clan data
             clan["clan"] = latestApiData["clan"]
@@ -421,6 +427,9 @@ def update():
                         if "warnings" in m:
                             member["warnings"] = m["warnings"]
                             
+                        if "cwlWarning" in m:
+                            member["cwlWarning"] = m["cwlWarning"]
+                            
                         if "prevDonationsReceived" in m:
                             member["prevDonationsReceived"] = m["prevDonationsReceived"]
                             
@@ -454,8 +463,13 @@ def processResults():
     
     for m in members:
         sortOrder = 0
+        m["cwlWarningPenality"] = 0
         m["townhallLevel"] = ""
-        m["wars"] = [0,0,0,0,0,0,0,0,0,0]
+        
+        m["wars"] = []
+        for x in range(rankHistory):
+            m["wars"].append(0)
+            
         m["attackWarnings"] = 0
         
         if "prevDonations" not in m:
@@ -472,7 +486,6 @@ def processResults():
             m["role"] = "E"
          
         windex=-1
-        rankHistory = 8
         rank = lastThreeRank = stars = attacks = destrution = missedAttackCounter = 0
         for w in clan["wars"]:
             if w["state"] == "warEnded":
@@ -546,21 +559,20 @@ def processResults():
                 m["townhallLevel"] = "static/townhalls/" + str(p["townHallLevel"]) + ".png"
                 m["warPreference"] = p["warPreference"]
                 m["dateLastIn"] = p["dateLastIn"]
+                
+                if "cwlWarning" in p:
+                    if len(p["cwlWarning"]) > 0:
+                        m["cwlWarningPenality"] = 500
                              
-                if "warnings" in p:                
-                    removeDates = []
-                    for w in p["warnings"]:
-                        wdate = datetime.strptime(w, '%Y%m%dT%H%M')
-                        if datetime.now() > wdate + timedelta(days=7):
-                            removeDates.append(w)
-                            app.logger.debug("Removing warning: " + m["name"] + " " + datetime.now().strftime('%Y%m%dT%H%M') + "> " + wdate.strftime('%Y%m%dT%H%M'))
-                            
-                    for w in removeDates:
-                        p["warnings"].remove(w)                
+                if "warnings" in p:
+                    p["warnings"] = expireWarnings(m["name"],p["warnings"],7)                      
                 
                     m["warnings"] = m["attackWarnings"] + len(p["warnings"])
                 else:
                     m["warnings"] = m["attackWarnings"]
+                    
+                if day > warLeagueEndDay and "cwlWarning" in p:
+                    p["cwlWarning"] = expireWarnings(m["name"],p["cwlWarning"],30) 
                 
                 if "prevDonationsReceived" in p:
                     prevDonationsReceived = p["prevDonationsReceived"]
@@ -577,46 +589,19 @@ def processResults():
         else:
             donationsReceived = m["donationsReceived"]
             donations = m["donations"]
-            
-        """if abs(donationsReceived - donations) > 1500:
-            donationMod = 0.1
-        elif abs(donationsReceived - donations) > 1000:
-            donationMod = 0.075
-        elif abs(donationsReceived - donations) > 500:
-            donationMod = 0.05
-        elif abs(donationsReceived - donations) > 250:
-            donationMod = 0.025
-                    
-        if donationMod == 0.1:
-            cwlRankMod = 2
-        elif donationMod >= 0.05:
-            cwlRankMod = 1
 
-        if donations < donationsReceived:
-            donationMod = donationMod * -1
-        
-        if donationMod >= 0:
-            m["donationMod"] = "+" + str(donationMod*100) + "%"
-            if day <= warLeagueEndDay:
-                p["cwlRankMod"] = cwlRankMod
-        else:
-            m["donationMod"] = "-" + str(donationMod*100*-1) + "%"
-            if day <= warLeagueEndDay:
-                p["cwlRankMod"] = cwlRankMod*-1
-
-        donationMod += 1   """
         m["donationMod"] = "+" + str(int(donations/100))
         p["cwlRankMod"] = int(donations/2000)
         if p["cwlRankMod"] > 6:
             p["cwlRankMod"] = 6
             
-        #m["rank"] = int(donationMod*rank*100)
-        #m["lastThreeRank"] = int(donationMod*lastThreeRank*100)
-        m["rank"] = int((donations/100)+(rank*100))
+        m["rank"] = int((donations/100)+(rank*100)) - m["cwlWarningPenality"]
         m["lastThreeRank"] = int((donations/100)+(lastThreeRank*100))
+        
+        if m["rank"] < 0:
+            m["rank"] = 0
             
     global page
-    #content = loadContent()
     mytemplate = Template(filename=homeTemplate)        
     members.sort(reverse=True, key=sortMembers)
     
@@ -704,7 +689,20 @@ def setPreviousDonations():
                 p["prevDonationsReceived"] = m["donationsReceived"]
                 p["prevDonation"]= m["donations"]
                 break        
+
+def expireWarnings(player,warnings,t):
+    removeDates = []
+    for w in warnings:
+        wdate = datetime.strptime(w, '%Y%m%dT%H%M')
+        if datetime.now() > wdate + timedelta(days=t):
+            removeDates.append(w)
+            app.logger.debug("Removing warning: " + player + " " + datetime.now().strftime('%Y%m%dT%H%M') + "> " + wdate.strftime('%Y%m%dT%H%M'))
+            
+    for w in removeDates:
+        warnings.remove(w)     
     
+    return(warnings)
+
 def writeJson(file,data):
     global clan
     with open(file, 'w') as f:
@@ -861,12 +859,14 @@ class PostForm(FlaskForm):
 class addWarningForm(FlaskForm):
     key = HiddenField()
     player = HiddenField()
+    type = BooleanField('CWL')
     submit = SubmitField('Add Warning')
 
 class deleteWarningForm(FlaskForm):
     key = HiddenField()
     player = HiddenField()
     date = HiddenField()
+    type = HiddenField()
     submit = SubmitField('Delete Warning')
 
 main()
@@ -878,30 +878,47 @@ def warnings():
     key = player = toggle = ""
     player = request.form.get('player')
     date = request.form.get('date')
+    cwlWarning = request.form.get('type')
     key = request.form.get('key')
+    app.logger.debug("Warning form; " + str(request.form.to_dict(flat=False)))
+        
     
     if key == notesKey:
         if obtainLock():     
-            try:
-                
+            try:  
                 members = clan["clan"]["memberList"]
                                    
                 if player != None:
-                    for m in clan["members"]:
-                        if m["tag"] == player:
+                    for p in clan["members"]:
+                        if p["tag"] == player:
                             if date is None:
                                 wdate = datetime.now().strftime("%Y%m%dT%H%M")
-                                if "warnings" in m:
-                                    m["warnings"].append(wdate)
+                                if cwlWarning == "y":
+                                    if "cwlWarning" in p:
+                                        p["cwlWarning"].append(wdate)
+                                    else:
+                                        p["cwlWarning"] = [wdate]
+                                    app.logger.debug("Add CWL Warning " + p["name"])
+
+                                if "warnings" in p:
+                                    p["warnings"].append(wdate)
                                 else:
-                                    m["warnings"] = [wdate]
-                                app.logger.debug("Add Warning " + m["name"])
+                                    p["warnings"] = [wdate]
+                                app.logger.debug("Add Warning " + p["name"])
                                 
                             else:
-                                for i, w in enumerate(m["warnings"]):
-                                    if w == date:
-                                        m["warnings"].pop(i)
-                                        break
+                                if cwlWarning == "y":
+                                    for i, w in enumerate(p["cwlWarning"]):
+                                        if w == date:
+                                            app.logger.debug("Removing CWL Warning " + p["name"] + " " + date)
+                                            p["cwlWarning"].pop(i)
+                                            break
+                                else:
+                                    for i, w in enumerate(p["warnings"]):
+                                        if w == date:
+                                            app.logger.debug("Removing Warning " + p["name"] + " " + date)
+                                            p["warnings"].pop(i)
+                                            break
                                 
                     for m in members:
                         if m["tag"] == player:
@@ -914,6 +931,7 @@ def warnings():
                     form = addWarningForm()
                     form.key.data = key
                     form.player.data = m["tag"]
+                    form.type.data = False
                     m["form"] = form
                     m["performanceWarning"] = False
                     warnings = []
@@ -925,11 +943,24 @@ def warnings():
                                     warningForm.key.data = key
                                     warningForm.player.data = m["tag"]
                                     warningForm.date.data = w
+                                    warningForm.type.data = False
                                     warningForm.submit.label.text = w
-                                    warnings.append(warningForm)
-                                m["manualWarnings"] = warnings
+                                    warnings.append(warningForm)                             
+                                
                                 if len(warnings)>0:
                                     m["performanceWarning"] = True
+                                    
+                            if "cwlWarning" in p:
+                                for w in p["cwlWarning"]:
+                                    warningForm = deleteWarningForm()
+                                    warningForm.key.data = key
+                                    warningForm.player.data = m["tag"]
+                                    warningForm.date.data = w
+                                    warningForm.type.data = "y"
+                                    warningForm.submit.label.text = "CWL Warning"
+                                    warnings.append(warningForm)                                
+
+                            m["manualWarnings"] = warnings
                             break
             finally:
                 releaseLock()

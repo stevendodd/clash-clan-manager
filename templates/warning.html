@@ -35,7 +35,7 @@ input[type=submit] {
   {% else: %}
   <tr>
   {% endif %}
-<td nowrap><form method="post">{{ member["form"].player }}{{ member["form"].key }} {{ member["form"].submit(class_="button is-link", height_="100%") }}</form></td>
+<td nowrap><form method="post">{{ member["form"].player }}{{ member["form"].key }}{{ member["form"].type.label }}: {{ member["form"].type }} {{ member["form"].submit(class_="button is-link", height_="100%") }}</form></td>
 
     {% if "warnings" in member: %}
       {% if member["warnings"] == 0: %}
@@ -56,7 +56,7 @@ input[type=submit] {
   <table><tr>
     {% if "manualWarnings" in member: %}
       {% for w in member["manualWarnings"]: %}
-      <td><form method="post">{{ w["player"] }}{{ w["key"] }}{{ w["date"] }} {{ w["submit"](class_="button is-link", height_="100%") }}</form></td>
+      <td><form method="post">{{ w["player"] }}{{ w["key"] }}{{ w["type"] }}{{ w["date"] }} {{ w["submit"](class_="button is-link", height_="100%") }}</form></td>
       {% endfor %}
     {% endif %}
   </tr></table>
