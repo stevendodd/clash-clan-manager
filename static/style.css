@@ -59,7 +59,7 @@ table {
     border-bottom: 1px solid #043a47; }
   table th, table td {
     padding: 6px 4px; }
-  table td {
+  .rule {
     border-bottom: 1px solid #087891; }
   table tr:last-of-type td {
     border-bottom: none; }

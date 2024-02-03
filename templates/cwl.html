@@ -128,9 +128,9 @@
 					<tbody>
 					    % for i, clan in enumerate(results["clans"]):
 						<tr>
-							<td width=35%><div
+							<td width=35% class="rule"><div
 									style="display: flex; align-items: center; justify-content: flex-end;">${i+1}.</div></td>
-							<td nowrap>
+							<td nowrap class="rule">
 								<div
 									style="display: flex; align-items: center; justify-content: flex-start;">
 									<img
@@ -138,12 +138,12 @@
 										height=25> &nbsp; <a style="color: gold;" href="https://www.clashofstats.com/clans/${clan["tag"].replace("#", "")}/summary" target="_blank">${clan["name"]}</a>
 								</div>
 							</td>
-							<td><div
+							<td class="rule"><div
 									style="display: flex; align-items: center; justify-content: flex-start;">
 									${clan["stars"]} <img src="/static/star.png" height=20>
 								</div></td>
-							<td>${clan["destruction"]}%</td>
-							<td width=35%><div
+							<td class="rule">${clan["destruction"]}%</td>
+							<td width=35% class="rule"><div
 									style="display: flex; align-items: center; justify-content: flex-start;">
 									<img src="/static/sword.png" height=20> &nbsp; ${clan["attacksRemaining"]} 
 								</div></td>
@@ -174,7 +174,7 @@
 					<tbody>
 						% for war in round:
 						<tr>
-							<td align=right width=30% style="background-color: 
+							<td class="rule" align=right width=30% style="background-color: 
 							% if war["state"] == "warEnded":
 								% if war["clan"]["stars"] > war["opponent"]["stars"]:
 									#009500
@@ -198,7 +198,7 @@
 										height=25> &nbsp; ${war["clan"]["name"]}
 								</div>
 							</td>
-							<td align=right nowrap style="background-color:
+							<td class="rule" align=right nowrap style="background-color:
 							% if war["state"] == "warEnded":
 								% if war["clan"]["stars"] > war["opponent"]["stars"]:
 									#009500
@@ -218,7 +218,7 @@
 									style="display: flex; align-items: center; justify-content: flex-end;">
 									<img src="/static/sword.png" height=20>${war["clan"]["attacks"]}
 								</div></td>
-							<td align=right style="background-color:
+							<td class="rule" align=right style="background-color:
 							% if war["state"] == "warEnded":
 								% if war["clan"]["stars"] > war["opponent"]["stars"]:
 									#009500
@@ -235,7 +235,7 @@
 								#E67E22
 							% endif
 							">${war["clan"]["destructionPercentage"]}%</td>
-							<td align=right nowrap style="background-color: 
+							<td class="rule" align=right nowrap style="background-color: 
 							% if war["state"] == "warEnded":
 								% if war["clan"]["stars"] > war["opponent"]["stars"]:
 									#009500
@@ -255,8 +255,8 @@
 									style="display: flex; align-items: center; justify-content: flex-end;">
 									${war["clan"]["stars"]} &nbsp; <img src="/static/star.png" height=20>
 								</div></td>
-							<td></td>
-							<td nowrap style="background-color:
+							<td class="rule"></td>
+							<td class="rule" nowrap style="background-color:
 							% if war["state"] == "warEnded":
 								% if war["clan"]["stars"] < war["opponent"]["stars"]:
 									#009500
@@ -278,7 +278,7 @@
 									<img src="/static/star.png" height=20> &nbsp; ${war["opponent"]["stars"]}
 								</div>
 							</td>
-							<td nowrap style="background-color:
+							<td class="rule" nowrap style="background-color:
 							% if war["state"] == "warEnded":
 								% if war["clan"]["stars"] < war["opponent"]["stars"]:
 									#009500
@@ -295,7 +295,7 @@
 								#E67E22
 							% endif
 							">${war["opponent"]["destructionPercentage"]}%</td>
-							<td nowrap style="background-color:
+							<td class="rule" nowrap style="background-color:
 							% if war["state"] == "warEnded":
 								% if war["clan"]["stars"] < war["opponent"]["stars"]:
 									#009500
@@ -315,7 +315,7 @@
 									style="display: flex; align-items: center; justify-content: flex-start;">
 									${war["opponent"]["attacks"]}<img src="/static/sword.png" height=20>
 								</div></td>
-							<td width=30% style="background-color:
+							<td class="rule" width=30% style="background-color:
 							% if war["state"] == "warEnded":
 								% if war["clan"]["stars"] < war["opponent"]["stars"]:
 									#009500
@@ -409,8 +409,8 @@
 						  style="background-color: #0686D4"
 						%endif
 						>
-							<td nowrap>${member["clan"]}</td>
-							<td nowrap><a 
+							<td class="rule" nowrap>${member["clan"]}</td>
+							<td class="rule" nowrap><a 
 							%if member["townHallLevel"] == 16:
 							  style="color: black;" 
 							%else:
@@ -420,46 +420,46 @@
 							 href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary" target="_blank">${member["name"]}</a></td>
 							
 							% if "0" in member["rounds"]:
-								<td nowrap>A: ${member["rounds"]["0"]["starsAttack"]}<br>D: ${member["rounds"]["0"]["starsDefense"]}</td>\
+								<td class="rule" nowrap>A: ${member["rounds"]["0"]["starsAttack"]}<br>D: ${member["rounds"]["0"]["starsDefense"]}</td>\
 							% else:
-								<td></td>
+								<td class="rule"></td>
 							% endif
 							% if "1" in member["rounds"]:
-								<td nowrap>A: ${member["rounds"]["1"]["starsAttack"]}<br>D: ${member["rounds"]["1"]["starsDefense"]}</td>\
+								<td class="rule" nowrap>A: ${member["rounds"]["1"]["starsAttack"]}<br>D: ${member["rounds"]["1"]["starsDefense"]}</td>\
 							% else:
-								<td></td>
+								<td class="rule"></td>
 							% endif
 							% if "2" in member["rounds"]:
-								<td nowrap>A: ${member["rounds"]["2"]["starsAttack"]}<br>D: ${member["rounds"]["2"]["starsDefense"]}</td>\
+								<td class="rule" nowrap>A: ${member["rounds"]["2"]["starsAttack"]}<br>D: ${member["rounds"]["2"]["starsDefense"]}</td>\
 							% else:
-								<td></td>
+								<td class="rule"></td>
 							% endif
 							% if "3" in member["rounds"]:
-								<td nowrap>A: ${member["rounds"]["3"]["starsAttack"]}<br>D: ${member["rounds"]["3"]["starsDefense"]}</td>\
+								<td class="rule" nowrap>A: ${member["rounds"]["3"]["starsAttack"]}<br>D: ${member["rounds"]["3"]["starsDefense"]}</td>\
 							% else:
-								<td></td>
+								<td class="rule"></td>
 							% endif
 							% if "4" in member["rounds"]:
-								<td nowrap>A: ${member["rounds"]["4"]["starsAttack"]}<br>D: ${member["rounds"]["4"]["starsDefense"]}</td>\
+								<td class="rule" nowrap>A: ${member["rounds"]["4"]["starsAttack"]}<br>D: ${member["rounds"]["4"]["starsDefense"]}</td>\
 							% else:
-								<td></td>
+								<td class="rule"></td>
 							% endif
 							% if "5" in member["rounds"]:
-								<td nowrap>A: ${member["rounds"]["5"]["starsAttack"]}<br>D: ${member["rounds"]["5"]["starsDefense"]}</td>\
+								<td class="rule" nowrap>A: ${member["rounds"]["5"]["starsAttack"]}<br>D: ${member["rounds"]["5"]["starsDefense"]}</td>\
 							% else:
-								<td></td>
+								<td class="rule"></td>
 							% endif
 							% if "6" in member["rounds"]:
-								<td nowrap>A: ${member["rounds"]["6"]["starsAttack"]}<br>D: ${member["rounds"]["6"]["starsDefense"]}</td>\
+								<td class="rule" nowrap>A: ${member["rounds"]["6"]["starsAttack"]}<br>D: ${member["rounds"]["6"]["starsDefense"]}</td>\
 							% else:
-								<td></td>
+								<td class="rule"></td>
 							% endif
 
-							<td nowrap>A: ${member["totalAttackStars"]} (${member["totalAttackDestruction"]}%)<br>D: ${member["totalDefenseStars"]} (${member["totalDefenseDestruction"]}%)
+							<td class="rule" nowrap>A: ${member["totalAttackStars"]} (${member["totalAttackDestruction"]}%)<br>D: ${member["totalDefenseStars"]} (${member["totalDefenseDestruction"]}%)
 							</td>
-							<td nowrap>${member["rank"]}</td>
+							<td class="rule" nowrap>${member["rank"]}</td>
 							
-							<td>
+							<td class="rule">
 							% if "cwlDonationMod" in member:
 							  ${member["rank"] + member["cwlDonationMod"]}
 							% endif
