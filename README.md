@@ -17,3 +17,17 @@ Requires python3.9
 pip3 install -r requirements.txt
 run.sh
 ```
+
+## Automatic tracking for wars via API
+
+<img src="https://stevendodd.ddns.net/images/clanmanager/m1.png" width=800>
+
+## CWL Tracking
+
+<img src="https://stevendodd.ddns.net/images/clanmanager/m2.png" width=800>
+<p><img src="https://stevendodd.ddns.net/images/clanmanager/m3.png" width=800>
+
+## Notes and Warning System
+
+<img src="https://stevendodd.ddns.net/images/clanmanager/m4.png" width=800>
+<p><img src="https://stevendodd.ddns.net/images/clanmanager/m5.png" width=800>
