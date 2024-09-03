@@ -10,3 +10,6 @@
 /mydata.json.BK.json
 /cwl/
 !/cwl/tmp/*
+/api/
+/members/
+/mydatax.json

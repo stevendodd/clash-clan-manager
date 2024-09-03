@@ -169,12 +169,12 @@
   <tr>
   % endif
   
-    % if "warnings" in member:
-      % if member["warnings"] == 0:
+    % if "warningCount" in member:
+      % if member["warningCount"] == 0:
       <td width=2></td>
-      % elif member["warnings"] == 1:
+      % elif member["warningCount"] == 1:
       <td width=2 style="background-color:Yellow">&nbsp;</td>
-      %  elif member["warnings"] == 2:
+      %  elif member["warningCount"] == 2:
       <td width=2 style="background-color:Tomato">&nbsp;</td>
       % else:
       <td width=2 style="background-color:Maroon">&nbsp;</td>
@@ -188,7 +188,7 @@
      CWL Penality
     % endif
     
-    " style="white-space:nowrap;font-size: 0.8em"><img height=35 src="${member["townhallLevel"]}"></td>
+    " style="white-space:nowrap;font-size: 0.8em"><img height=35 src="${member["townhallImage"]}"></td>
     <td valign="middle"><img src="${member["league"]["iconUrls"]["tiny"]}" height=35></td> 
     <td style="font-size: 1em;"><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary" target="_blank">${member["name"]}</a></td>
     
