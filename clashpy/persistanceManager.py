@@ -5,7 +5,6 @@ import json
 from threading import Lock
 
 
-
 class PersistanceManager:
     
     _apiBasePath = "data/api"
@@ -13,6 +12,7 @@ class PersistanceManager:
     _cwlBasePath = "data/api/cwl/"
     _membersBasePath = "data/members/"
     _membersDataFile = _membersBasePath + "members.json"
+    _membersArchive =  _membersBasePath + "membersArchive.json"
     _cwlSeasonPath = None
     
     _wars = []
@@ -22,8 +22,8 @@ class PersistanceManager:
         "tag","name","role","townHallLevel","townhallImage",
         "warPreference","dateLastIn","dateLastSeen","warnings",
         "cwlWarning","warningCount","cwlWarningPenality","attackWarnings",
-        "donationsReceived","donations","prevDonationsReceived",
-        "prevDonation","donationMod","cwlRankMod","wars","averageStars",
+        "donationsReceived","donations","donationHistory",
+        "donationMod","cwlRankMod","wars","averageStars",
         "averageDestruction","rank","lastThreeRank","lastThree","sort"
        ]
     
@@ -90,10 +90,21 @@ class PersistanceManager:
                 
                 if "currentMemberNumber" in member:
                     status = status + "[" + str(member["currentMemberNumber"] + 1) + "|" + str(len(self._currentMemberList)) + "] "
-                    
-                self._logger.debug(status  + memberUpdate["name"] + ": " + str(memberUpdate))
-                self.writeJson(self._membersDataFile, self._members)
+                
+                if "name" in memberUpdate:    
+                    self._logger.debug(status  + memberUpdate["name"] + ": " + str(memberUpdate))
+                    self.writeJson(self._membersDataFile, self._members)
   
+    def archiveMember(self, member):
+        for m in self._members:
+            if m["tag"] == member["tag"]:
+                
+                with open(self._membersArchive, "a") as f:
+                    json.dump(m, f, indent=2)
+                
+                self._members.remove(m)
+                break
+    
             
     def addCwlSeason(self, season, league):
         self._cwlSeasonPath = self._cwlBasePath + season

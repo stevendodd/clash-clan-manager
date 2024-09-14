@@ -172,3 +172,13 @@ class ClashApi:
             return response.json()["status"]
         else:
             return None
+        
+        
+    def getClan(self):
+        response = requests.get(self._apiUrls["clan"], headers={'Authorization': 'Bearer ' + self._token})
+        if response.status_code == 200 and response.json():
+            return response.json()
+
+        else:
+             self._logger.error("Couldn't load clan data from API: " + str(response.status_code))
+             return None

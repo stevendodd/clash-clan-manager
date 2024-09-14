@@ -1,6 +1,7 @@
 import clanManager
 import cwlController
 import migration
+import utils
 
 from flask import Flask, app
 from flask import request, redirect, render_template
@@ -113,29 +114,7 @@ def update():
     pruneBackups()
     if not os.path.exists(dailyBackupFile):
         writeJson(dailyBackupFile,clan)
-        
-    # Detect donation reset
-    if "clan" in clan:
-        resetDetected = False
-        rcounter = 0
-        for ml in latestApiData["clan"]["memberList"]:
-            if (not resetDetected) and ml["donationsReceived"] == 0 and ml["donations"] == 0:
-                for m in clan["clan"]["memberList"]:
-                    if m["tag"] == ml["tag"]:
-                        if m["donationsReceived"] > 0 or m["donations"] > 0:
-                            rcounter += 1
-                            break
-                            
-                    if rcounter >= 5:
-                        resetDetected = True
-                        break
-                    
-        if day <= clanManager.warLeagueEndDay or "seasonEnd" not in clan:
-            clan["seasonEnd"] = False
-                        
-        if resetDetected and day > clanManager.warLeagueEndDay:
-            setPreviousDonations()
-                   
+                         
     # Update current war data
     clanManager.storage.addWar(latestApiData["currentWar"])
         
@@ -164,7 +143,10 @@ def update():
     writeJson(clanManager.dataFile,clan)
 
 
-def processResults():    
+def processResults():
+    currentSeason = utils.getCurrentSeason()
+    previousSeason = utils.getPreviousSeason()
+    seasonEnd = utils.getSeasonEndDay()
     currentMembers = clan["clan"]["memberList"]
     
     if len(clanManager.storage.getWars()) >= 1:
@@ -188,9 +170,38 @@ def processResults():
         for x in range(clanManager.rankHistory):
             member["wars"].append(0)
             
-        if "prevDonations" not in member:
-            member["prevDonations"] = 0
-            member["prevDonationsReceived"] = 0
+        if "donationHistory" not in member:
+            member = utils.addDonationHistory(member,currentSeason,previousSeason)
+            
+        if currentSeason not in member["donationHistory"]:
+            member["donationHistory"][currentSeason]["donations"] = 0
+            member["donationHistory"][currentSeason]["donationsReceived"] = 0
+            member["donationHistory"][currentSeason]["savedDonations"] = 0
+            member["donationHistory"][currentSeason]["savedDonationsReceived"] = 0
+        
+        if m["donations"] < member["donationHistory"][currentSeason]["donations"]:
+            print("Saving donations for {} - donations: {} saved: +{}".format(
+                    member["name"],
+                    m["donations"],
+                    member["donationHistory"][currentSeason]["donations"]))
+            
+            member["donationHistory"][currentSeason]["savedDonations"] += member["donationHistory"][currentSeason]["donations"]
+            member["donationHistory"][currentSeason]["savedDonationsReceived"] += member["donationHistory"][currentSeason]["donationsReceived"]
+            
+        member["donationHistory"][currentSeason]["donations"] = m["donations"]
+        member["donationHistory"][currentSeason]["donationsReceived"] = m["donationsReceived"]
+        
+        member["donationDisplay"] = m["donations"]
+        if member["donationHistory"][currentSeason]["savedDonations"] > 0:
+            member["donationDisplay"] = "{} (+{})".format(
+                        m["donations"],
+                        member["donationHistory"][currentSeason]["savedDonations"])
+        
+        member["prevDonationDisplay"] = member["donationHistory"][previousSeason]["donations"]
+        if member["donationHistory"][previousSeason]["savedDonations"] > 0:
+            member["prevDonationDisplay"] = "{} (+{})".format(
+                        member["donationHistory"][previousSeason]["donations"],
+                        member["donationHistory"][previousSeason]["savedDonations"])
     
         if m["role"] == "leader":
             member["role"] = "L"
@@ -268,9 +279,6 @@ def processResults():
             member["averageStars"] = 0
             member["averageDestruction"] = 0
         
-        prevDonationsReceived = 0
-        prevDonations = 0
-        
         if "cwlWarning" in member:
             if len(member["cwlWarning"]) > 0:
                 member["cwlWarningPenality"] = 500
@@ -284,19 +292,18 @@ def processResults():
         if day > clanManager.warLeagueEndDay and "cwlWarning" in member:
             member["cwlWarning"] = expireWarnings(member["name"],member["cwlWarning"],30) 
         
-        if "prevDonationsReceived" in member:
-            prevDonationsReceived = member["prevDonationsReceived"]
-            
-        if "prevDonations" in member:
-            prevDonations = member["prevDonations"]
-        
-        donationMod = cwlRankMod = 0        
-        if day <= clanManager.warLeagueEndDay or clan["seasonEnd"]:
-            donationsReceived = prevDonationsReceived
-            donations = prevDonations
+        donations = donationsReceived = donationMod = cwlRankMod = 0        
+        if day <= clanManager.warLeagueEndDay or day >= seasonEnd:
+            if previousSeason in member["donationHistory"]:
+                donationsReceived = member["donationHistory"][previousSeason]["donationsReceived"] + \
+                                    member["donationHistory"][previousSeason]["savedDonationsReceived"]
+                donations = member["donationHistory"][previousSeason]["donations"] + \
+                                    member["donationHistory"][previousSeason]["savedDonations"]
         else:
-            donationsReceived = m["donationsReceived"]
-            donations = m["donations"]
+            donationsReceived = member["donationHistory"][currentSeason]["donationsReceived"] + \
+                                member["donationHistory"][currentSeason]["savedDonationsReceived"]
+            donations = member["donationHistory"][currentSeason]["donations"] + \
+                                member["donationHistory"][currentSeason]["savedDonations"]
 
         member["donationMod"] = "+" + str(int(donations/100))
         member["cwlRankMod"] = int(donations/2000)
@@ -343,17 +350,6 @@ def processResults():
                              )
   
 
-def setPreviousDonations():
-    global clan
-    
-    clan["seasonEnd"] = True
-    for m in clan["clan"]["memberList"]:
-        for p in clanManager.storage.getMembers():
-            if m["tag"] == p["tag"]:
-                p["prevDonationsReceived"] = m["donationsReceived"]
-                p["prevDonations"]= m["donations"]
-                break        
-
 def expireWarnings(player,warnings,t):
     removeDates = []
     for w in warnings:
@@ -395,7 +391,7 @@ def readData():
         f = open(clanManager.dataFile)
         return(json.load(f))
     else:
-        return({"seasonEnd": False})
+        return({})
     
 def readNotes():
     if os.path.exists(clanManager.notesDataFile):
