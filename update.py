@@ -179,8 +179,8 @@ def processResults():
             member["donationHistory"][currentSeason]["savedDonations"] = 0
             member["donationHistory"][currentSeason]["savedDonationsReceived"] = 0
         
-        if m["donations"] < member["donationHistory"][currentSeason]["donations"]:
-            print("Saving donations for {} - donations: {} saved: +{}".format(
+        if m["donations"] < member["donationHistory"][currentSeason]["donations"] and day != seasonEnd:
+            app.logger.debug("Saving donations for {} - donations: {} saved: +{}".format(
                     member["name"],
                     m["donations"],
                     member["donationHistory"][currentSeason]["donations"]))
