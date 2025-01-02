@@ -174,10 +174,12 @@ def processResults():
             member = utils.addDonationHistory(member,currentSeason,previousSeason)
             
         if currentSeason not in member["donationHistory"]:
-            member["donationHistory"][currentSeason]["donations"] = 0
-            member["donationHistory"][currentSeason]["donationsReceived"] = 0
-            member["donationHistory"][currentSeason]["savedDonations"] = 0
-            member["donationHistory"][currentSeason]["savedDonationsReceived"] = 0
+            member["donationHistory"][currentSeason] = {
+               "donations": 0,
+               "donationsReceived": 0,
+               "savedDonations": 0,
+               "savedDonationsReceived": 0 
+            }
         
         if m["donations"] < member["donationHistory"][currentSeason]["donations"] and day != seasonEnd:
             app.logger.debug("Saving donations for {} - donations: {} saved: +{}".format(
@@ -197,11 +199,13 @@ def processResults():
                         m["donations"],
                         member["donationHistory"][currentSeason]["savedDonations"])
         
-        member["prevDonationDisplay"] = member["donationHistory"][previousSeason]["donations"]
-        if member["donationHistory"][previousSeason]["savedDonations"] > 0:
-            member["prevDonationDisplay"] = "{} (+{})".format(
-                        member["donationHistory"][previousSeason]["donations"],
-                        member["donationHistory"][previousSeason]["savedDonations"])
+        member["prevDonationDisplay"] = 0
+        if previousSeason in member["donationHistory"]:
+            member["prevDonationDisplay"] = member["donationHistory"][previousSeason]["donations"]
+            if member["donationHistory"][previousSeason]["savedDonations"] > 0:
+                member["prevDonationDisplay"] = "{} (+{})".format(
+                            member["donationHistory"][previousSeason]["donations"],
+                            member["donationHistory"][previousSeason]["savedDonations"])
     
         if m["role"] == "leader":
             member["role"] = "L"

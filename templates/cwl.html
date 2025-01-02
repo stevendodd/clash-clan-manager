@@ -400,7 +400,9 @@
 					<tbody>
 						% for member in results["players"]:
 						<tr
-						%if member["townHallLevel"] == 16:
+						%if member["townHallLevel"] == 17:
+						  style="background-color: #809180"
+						%elif member["townHallLevel"] == 16:
 						  style="background-color: #FEBA29"
 						%elif member["townHallLevel"] == 15:
 						  style="background-color: #7703D3"
@@ -420,7 +422,7 @@
 							  style="color: gold;" 
 							%endif
 							
-							 href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary" target="_blank">${member["name"]}</a></td>
+							 href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary" target="_blank">${member["name"].replace("<","&lt;").replace(">","&gt;")}</a></td>
 							
 							% if "0" in member["rounds"]:
 								<td class="rule" nowrap>A: ${member["rounds"]["0"]["starsAttack"]}<br>D: ${member["rounds"]["0"]["starsDefense"]}</td>\
