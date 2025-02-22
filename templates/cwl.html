@@ -97,6 +97,8 @@
 		$('.filter').multifilter({
 			'target' : $('#myTable2')
 		})
+		$('.filter').keyup();
+		sortTable(11,'numeric')
 	})
 	//]]>
 </script>
@@ -367,7 +369,7 @@
 				<div class='filters'>
 					<div class='filter-container'>
 						<input autocomplete='off' class='filter' name='clan'
-							id="clan" placeholder='clan' data-col='clan' />
+							id="clan" placeholder='clan' data-col='clan' value='${clanDetails["name"]}' />
 					</div>
 					<div class='filter-container'>
 						<input autocomplete='off' class='filter' name='name'

@@ -29,7 +29,9 @@ page = ""
 cwlPage = ""
 day = int(datetime.now().strftime("%d"))
 
-logfile = 'data/logs/clanManager.log'
+logfile = 'data/logs/clanManager.log'        
+utils.touch(logfile)
+
 dictConfig(
             {
     'version': 1,
@@ -90,24 +92,25 @@ def update():
       
     cwlController.process(latestApiData)
     
-    cwlDonationMod = 0
-    if clanManager.storage.getMembers():
-        for p in cwlController.results["players"]:
-            for m in clanManager.storage.getMembers():
-                if p["tag"] == m["tag"]:
-                    if "cwlRankMod" in m:
-                       cwlDonationMod = m["cwlRankMod"]
-            p["cwlDonationMod"] = cwlDonationMod
-     
-    global cwlPage
-    mytemplate = Template(filename=clanManager.cwlTemplate) 
-
-    cwlPage = mytemplate.render(cwl=latestApiData["warLeague"],
-                                currentRound=cwlController.currentRound,
-                                remainingTime=cwlController.remainingTime,
-                                rounds=cwlController.rounds,
-                                results=cwlController.results,
-                                clanDetails=clanManager.clanDetails)        
+    if cwlController.results is not None:
+        cwlDonationMod = 0
+        if clanManager.storage.getMembers():
+            for p in cwlController.results["players"]:
+                for m in clanManager.storage.getMembers():
+                    if p["tag"] == m["tag"]:
+                        if "cwlRankMod" in m:
+                           cwlDonationMod = m["cwlRankMod"]
+                p["cwlDonationMod"] = cwlDonationMod
+         
+        global cwlPage
+        mytemplate = Template(filename=clanManager.cwlTemplate) 
+    
+        cwlPage = mytemplate.render(cwl=latestApiData["warLeague"],
+                                    currentRound=cwlController.currentRound,
+                                    remainingTime=cwlController.remainingTime,
+                                    rounds=cwlController.rounds,
+                                    results=cwlController.results,
+                                    clanDetails=clanManager.clanDetails)        
     
     day = int(datetime.now().strftime("%d"))
     dailyBackupFile = clanManager.backupFile + "." + str(day)

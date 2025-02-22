@@ -31,6 +31,9 @@ class ClanManager:
     
     def __init__(self, logger):
         self._logger = logger
+
+        if not os.path.exists('data/backup'):
+            os.makedirs('data/backup')  
         
         if os.path.exists(self.configFile):
             f = open(self.configFile)

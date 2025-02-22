@@ -1,3 +1,4 @@
+import os
 import calendar
 from datetime import date
 from datetime import datetime
@@ -83,3 +84,11 @@ def addDonationHistory(member,currentSeason,previousSeason):
         del member["prevDonations"]
             
     return member
+
+def touch(path):
+    basedir = os.path.dirname(path)
+    if not os.path.exists(basedir):
+        os.makedirs(basedir)
+        
+    with open(path, 'a'):
+        os.utime(path, None)
