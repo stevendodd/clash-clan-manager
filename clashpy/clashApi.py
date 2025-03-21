@@ -112,7 +112,7 @@ class ClashApi:
         
         if response.status_code == 403:
             self._logger.debug("Attempting to refresh token")
-            self._token = self._getToken(self._email, self._password, self._keyName)
+            self._token = self._getToken(self._email, self._password, self._key_name)
             response = requests.get(self._apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + self._token})
             
         if response.status_code == 200 and "preparationStartTime" in response.json():
