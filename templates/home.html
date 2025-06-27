@@ -168,7 +168,10 @@
   % for i, member in enumerate(members):
 
   % if i == 30:
-  <tr><td colspan=18 style="background-color:Maroon"></td></tr>
+  <tr>
+  <td width=2 style="background-color:White"></td>
+  <td colspan=17 style="background-color:Maroon"><p><center><font style="color:White">Players above this line are automatically in CWL. Players below are replacements.</font></center></p></td>
+  </tr>
   % endif
 
   % if not i%2:
@@ -190,8 +193,13 @@
     % else:
       <td width=2></td>
     % endif
-  
+    
+    % if member["warPreference"] == "in":
     <td align=right class="tooltip" data-text="Rank: ${member["rank"]} 
+    % else:
+    <td align=right class="tooltip" data-text="Rank: Out 
+    % endif
+    
     % if member["cwlWarningPenality"] > 0:
      CWL Penality
     % endif

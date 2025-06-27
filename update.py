@@ -327,6 +327,12 @@ def processResults():
         
         if member["rank"] < 0:
             member["rank"] = 0
+        
+        if "warPreference" not in member: 
+            member["warPreference"] = "out"
+            
+        if member["warPreference"] == "out":
+            member["rank"] = -1
             
         members.append(member)
             
