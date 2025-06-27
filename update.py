@@ -125,8 +125,7 @@ def update():
     clan["clan"] = latestApiData["clan"]
     clan["lastUpdated"] = datetime.now().strftime("%c")
         
-    # Update warlog data
-    clanManager.storage.setWarLog(latestApiData["warLog"])
+    warlog_data = clanManager.storage.getWarLog()
     
     # Update players
     for j,player in enumerate(latestApiData["players"]):
@@ -348,10 +347,14 @@ def processResults():
                     m["lastThree"] = -1
                 break
     
+    warlog_data = clanManager.storage.getWarLog()
+    items    = warlog_data.get("items", [])
+    state    = warlog_data.get("currentState", "warEnded")
+
     page = mytemplate.render(clan=clanManager.clanDetails,
                              members=members, 
-                             warlog=clanManager.storage.getWarLog()["items"], 
-                             warState=clanManager.storage.getWarLog()["currentState"],
+                             warlog=items,
+                             warState=state,
                              lastUpdated=clan["lastUpdated"],
                              banners=getBanners()
                              )
