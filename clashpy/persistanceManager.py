@@ -32,6 +32,11 @@ class PersistanceManager:
         self._logger = logger
         self._lock = Lock()
         
+        self._warLog = {
+            "items": [], 
+            "currentState": "warEnded"
+        }
+
         if not os.path.exists(self._cwlBasePath):
             os.makedirs(self._cwlBasePath + "tmp")
             
@@ -146,7 +151,9 @@ class PersistanceManager:
     
     
     def getWarLog(self):
-        return(self._warLog)
+        if not hasattr(self, "_warLog"):
+            self._warLog = {"items": [], "currentState": "warEnded"}
+        return self._warLog
     
     
     def setWars(self,wars):
