@@ -205,7 +205,14 @@
     % endif
     
     " style="white-space:nowrap;font-size: 0.8em"><img height=35 src="${member["townhallImage"]}"></td>
-    <td valign="middle"><img src="${member["league"]["iconUrls"]["tiny"]}" height=35></td> 
+    <td valign="middle"><img src="
+    % if "leagueTier" in member:
+      ${member["leagueTier"]["iconUrls"]["small"]}
+    % else:
+      https://api-assets.clashofclans.com/leagues/36/e--YMyIexEQQhE4imLoJcwhYn6Uy8KqlgyY3_kFV6t4.png
+    % endif
+    
+    " height=35></td> 
     <td style="font-size: 1em;"><a style="color: gold;" href="https://www.clashofstats.com/players/${member["tag"].replace("#", "")}/summary" target="_blank">${member["name"].replace("<","&lt;").replace(">","&gt;")}</a></td>
     
     <td style="white-space:nowrap;font-size: 0.8em;">

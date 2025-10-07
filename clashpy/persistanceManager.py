@@ -19,7 +19,7 @@ class PersistanceManager:
     _members = []
     _currentMemberList = []
     _memberUpdateFields = [
-        "tag","name","role","townHallLevel","townhallImage",
+        "tag","name","role","townHallLevel","townhallImage", "leagueTier",
         "warPreference","dateLastIn","dateLastSeen","warnings",
         "cwlWarning","warningCount","cwlWarningPenality","attackWarnings",
         "donationsReceived","donations","donationHistory",
