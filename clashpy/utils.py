@@ -4,57 +4,37 @@ from datetime import date
 from datetime import datetime
 import pytz
 
+import datetime
+
 def getCurrentSeason():
-    todays_date = date.today()
-    season_month = f'{todays_date.month:02}'
-    
-    n = int(todays_date.month) + 1
-    next_month = f'{n:02}'
-    
-    month = calendar.monthcalendar(todays_date.year, todays_date.month)
-    lastMondayOfMonth = max(month[-1][calendar.MONDAY], month[-2][calendar.MONDAY])
-
-    if todays_date.day > lastMondayOfMonth:
-        season_month = next_month 
-    
-    elif todays_date.day == lastMondayOfMonth and int(datetime.now(pytz.utc).strftime("%H")) >= 5:
-        season_month = next_month
-        
-    return "{}-{}".format(todays_date.year,season_month)
-
+    today = datetime.date.today()
+    start = datetime.date(2025, 11, 3)
+    days_since = (today - start).days
+    remainder = days_since % 28 if days_since >= 0 else days_since % 28 - 28  # Handle negative for dates before start
+    current_date = today - datetime.timedelta(days=remainder)
+    return current_date.strftime('%Y-%m-%d')
 
 def getPreviousSeason():
-    todays_date = date.today()
-    
-    season_year = todays_date.year    
-    last_year = season_year - 1
-    
-    season_month = f'{todays_date.month:02}'
-    n = int(todays_date.month) - 1
-    last_month = f'{n:02}'
-    if n == 0:
-        last_month = '12'    
-    
-    month = calendar.monthcalendar(todays_date.year, todays_date.month)
-    lastMondayOfMonth = max(month[-1][calendar.MONDAY], month[-2][calendar.MONDAY])
-
-    if todays_date.day < lastMondayOfMonth:
-        season_month = last_month
-        if n == 0:
-            season_year = last_year
-    
-    elif todays_date.day == lastMondayOfMonth and int(datetime.now(pytz.utc).strftime("%H")) < 5:
-        season_month = last_month
-        if n == 0:
-            season_year = last_year
-        
-    return "{}-{}".format(season_year,season_month)
+    current_date = datetime.date.fromisoformat(getCurrentSeason())
+    previous_date = current_date - datetime.timedelta(days=28)
+    return previous_date.strftime('%Y-%m-%d')
 
 def getSeasonEndDay():
-    todays_date = date.today()
+    today = datetime.date.today()
+    start = datetime.date(2025, 11, 3)
     
-    month = calendar.monthcalendar(todays_date.year, todays_date.month)
-    return max(month[-1][calendar.MONDAY], month[-2][calendar.MONDAY])
+    if today < start:
+        return start.day
+    
+    days_since = (today - start).days
+    remainder = days_since % 28
+    
+    if remainder == 0:
+        return today.day
+    
+    days_to_next = 28 - remainder
+    next_date = today + datetime.timedelta(days=days_to_next)
+    return next_date.day
 
 
 def addDonationHistory(member,currentSeason,previousSeason):
