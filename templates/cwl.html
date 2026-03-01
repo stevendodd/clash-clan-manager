@@ -403,7 +403,7 @@
 						% for member in results["players"]:
 						<tr
 						%if member["townHallLevel"] == 18:
-						  style="background-color: #FFEDD4"
+						  style="background-color: #B8B87F"
 						%elif member["townHallLevel"] == 17:
 						  style="background-color: #809180"
 						%elif member["townHallLevel"] == 16:
@@ -420,7 +420,7 @@
 						>
 							<td class="rule" nowrap>${member["clan"]}</td>
 							<td class="rule" nowrap><a 
-							%if member["townHallLevel"] == 16:
+							%if member["townHallLevel"] == 16 or member["townHallLevel"] == 18:
 							  style="color: black;" 
 							%else:
 							  style="color: gold;" 
