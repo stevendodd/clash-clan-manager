@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+
+<url>
+  <loc>https://boom-coc.ddns.net</loc>
+  <lastmod>2025-10-31T13:26:31+00:00</lastmod>
+  <priority>1.00</priority>
+</url>
+<url>
+  <loc>https://boom-coc.ddns.net/static/guidelines.html</loc>
+  <lastmod>2025-10-07T16:24:06+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://boom-coc.ddns.net/cwl</loc>
+  <lastmod>2025-10-31T13:26:31+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+
+
+</urlset>

@@ -6,7 +6,13 @@ from base64 import b64decode as base64_b64decode
 
 
 
+class InvalidCredentials(Exception):
+    pass
+
+
 class ClashApi:
+
+    API_TIMEOUT = 30
 
     def __init__(self, clanManager, email, password, key_name, clanTag, logger):
         self._clanManager = clanManager
@@ -30,9 +36,9 @@ class ClashApi:
             "verifytoken": "/verifytoken"
         }
         
-        response = requests.get(self._apiUrls["clan"], headers={'Authorization': 'Bearer ' + self._token})
+        response = requests.get(self._apiUrls["clan"], headers={'Authorization': 'Bearer ' + self._token}, timeout=self.API_TIMEOUT)
         if response.status_code != 200:
-            exit(str(response) + ": Failed to get clan")
+            raise RuntimeError("Failed to get clan: " + str(response.status_code))
         else:
             self._clanName = response.json()["name"]
 
@@ -47,6 +53,8 @@ class ClashApi:
         resp = s.post("https://developer.clashofclans.com/api/login", json=body)
         if resp.status_code == 403:
             raise InvalidCredentials(resp)
+        if resp.status_code != 200:
+            raise RuntimeError("Login failed with status %s" % resp.status_code)
         
         self._logger.debug("Successfully logged into the developer site.")
         
@@ -108,36 +116,37 @@ class ClashApi:
 
     def getApiData(self):
         latestCurrentWar = {}
-        response = requests.get(self._apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + self._token})
+        response = requests.get(self._apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + self._token}, timeout=self.API_TIMEOUT)
         
         if response.status_code == 403:
             self._logger.debug("Attempting to refresh token")
-            self._token = self._getToken(self._email, self._password, self._key_name)
-            response = requests.get(self._apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + self._token})
+            self._token = self._getToken()
+            response = requests.get(self._apiUrls["currentwar"], headers={'Authorization': 'Bearer ' + self._token}, timeout=self.API_TIMEOUT)
             
         if response.status_code == 200 and "preparationStartTime" in response.json():
             self._clanManager.storage.addWar(response.json())
             latestCurrentWar = response.json()
         
         latestClan = {}
-        response = requests.get(self._apiUrls["clan"], headers={'Authorization': 'Bearer ' + self._token})
+        response = requests.get(self._apiUrls["clan"], headers={'Authorization': 'Bearer ' + self._token}, timeout=self.API_TIMEOUT)
         if response.status_code == 200 and response.json():
             latestClan = response.json()
         
-            response = requests.get(latestClan["badgeUrls"]["small"])
-            if response.status_code == 200:
-                open('static/badge.png', 'wb').write(response.content)
+            badge_resp = requests.get(latestClan["badgeUrls"]["small"], timeout=self.API_TIMEOUT)
+            if badge_resp.status_code == 200 and badge_resp.headers.get('content-type', '').startswith('image/'):
+                with open('static/badge.png', 'wb') as f:
+                    f.write(badge_resp.content)
         else:
              self._logger.error("Couldn't load clan data from API: " + str(response.status_code))
              return("")
             
         latestWarLeague = {}
-        response = requests.get(self._apiUrls["league"], headers={'Authorization': 'Bearer ' + self._token})
+        response = requests.get(self._apiUrls["league"], headers={'Authorization': 'Bearer ' + self._token}, timeout=self.API_TIMEOUT)
         if response.status_code == 200 and response.json():
             latestWarLeague = response.json()
         
         latestWarLog = {}
-        response = requests.get(self._apiUrls["warlog"], headers={'Authorization': 'Bearer ' + self._token})
+        response = requests.get(self._apiUrls["warlog"], headers={'Authorization': 'Bearer ' + self._token}, timeout=self.API_TIMEOUT)
         if response.status_code == 200 and response.json():
             latestWarLog = response.json()
         
@@ -147,7 +156,7 @@ class ClashApi:
                     self._updateMember = 0
                     
             playerTag = latestClan["memberList"][self._updateMember]["tag"].strip("#")
-            response = requests.get(self._apiUrls["player"] + playerTag, headers={'Authorization': 'Bearer ' + self._token})
+            response = requests.get(self._apiUrls["player"] + playerTag, headers={'Authorization': 'Bearer ' + self._token}, timeout=self.API_TIMEOUT)
             if response.status_code == 200 and response.json():
                 latestPlayers.append(response.json())
                 self._updateMember += 1
@@ -157,17 +166,17 @@ class ClashApi:
                 "warLeague": latestWarLeague,
                 "clan": latestClan,
                 "warLog": latestWarLog,
-                "players": latestPlayers})  
+                "players": latestPlayers})
         
     def getLeagueRound(self,tag):
-        response = requests.get(self._apiUrls["leagueRound"] + tag, headers={'Authorization': 'Bearer ' + self._token})
+        response = requests.get(self._apiUrls["leagueRound"] + tag, headers={'Authorization': 'Bearer ' + self._token}, timeout=self.API_TIMEOUT)
         if response.status_code == 200 and response.json():
             return response.json()
         else:
             return None
         
     def verifytoken(self,tag):
-        response = requests.get(self._apiUrls["player"] + tag + self._apiUrls["verifytoken"], headers={'Authorization': 'Bearer ' + self._token})
+        response = requests.get(self._apiUrls["player"] + tag + self._apiUrls["verifytoken"], headers={'Authorization': 'Bearer ' + self._token}, timeout=self.API_TIMEOUT)
         if response.status_code == 200 and response.json():
             return response.json()["status"]
         else:
@@ -175,7 +184,7 @@ class ClashApi:
         
         
     def getClan(self):
-        response = requests.get(self._apiUrls["clan"], headers={'Authorization': 'Bearer ' + self._token})
+        response = requests.get(self._apiUrls["clan"], headers={'Authorization': 'Bearer ' + self._token}, timeout=self.API_TIMEOUT)
         if response.status_code == 200 and response.json():
             return response.json()
 
