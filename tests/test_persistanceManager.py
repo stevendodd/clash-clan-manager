@@ -148,14 +148,12 @@ class TestWarningMethods:
         pm.add_warning("#P1", "20250101T1200")
         members = pm.getMembers()
         assert members[0]["warnings"] == ["20250101T1200"]
-        assert members[0]["warningCount"] == 1
 
     def test_remove_warning(self, pm):
-        pm._members = [{"tag": "#P1", "name": "Player1", "warnings": ["20250101T1200"], "warningCount": 1}]
+        pm._members = [{"tag": "#P1", "name": "Player1", "warnings": ["20250101T1200"]}]
         pm.remove_warning("#P1", "20250101T1200")
         members = pm.getMembers()
         assert members[0]["warnings"] == []
-        assert members[0]["warningCount"] == 0
 
     def test_add_cwl_warning(self, pm):
         pm._members = [{"tag": "#P1", "name": "Player1"}]
@@ -193,6 +191,16 @@ class TestLoadWars:
         pm._loadWars()
         assert pm.getWars() == []
 
+    def test_caps_wars_to_rank_history(self, pm):
+        pm._clanManager.rankHistory = 3
+        for i in range(10):
+            war = make_ended_war(prep_time=f"2025010{i+1}T000000.000Z")
+            war_file = os.path.join(pm._warDataPath, f"2025010{i+1}T000000.000Z.json")
+            pm.writeJson(war_file, war)
+        pm._wars = []
+        pm._loadWars()
+        assert len(pm.getWars()) <= 4
+
 
 class TestWarLog:
     def test_set_and_get_warlog(self, pm):
@@ -215,3 +223,140 @@ class TestCwlSeason:
         pm.addLeagueRound("ABC123", round_data)
         round_path = os.path.join(pm._cwlBasePath, "2025-01", "ABC123.json")
         assert os.path.exists(round_path)
+
+    def test_prunes_old_seasons(self, pm, tmp_path):
+        import shutil
+        for i in range(8):
+            season_dir = os.path.join(pm._cwlBasePath, f"2024-{i+1:02d}")
+            os.makedirs(season_dir, exist_ok=True)
+            with open(os.path.join(season_dir, "league.json"), 'w') as f:
+                json.dump({"season": f"2024-{i+1:02d}"}, f)
+        league = {"season": "2025-01", "clans": []}
+        pm.addCwlSeason("2025-01", league)
+        remaining = [d for d in os.listdir(pm._cwlBasePath) if os.path.isdir(os.path.join(pm._cwlBasePath, d)) and not d.endswith('tmp')]
+        assert len(remaining) <= pm._maxCwlSeasons
+
+
+class TestPersistMembers:
+    def test_persists_only_persistent_fields(self, pm):
+        full_member = make_member(tag="#TEST")
+        full_member["rank"] = 500
+        full_member["sort"] = 3.5
+        full_member["wars"] = [1, 0, -1]
+        full_member["averageStars"] = 2.5
+        full_member["averageDestruction"] = 75
+        full_member["donationDisplay"] = "100 (+50)"
+        full_member["prevDonationDisplay"] = "200"
+        full_member["donationMod"] = "+5"
+        full_member["cwlRankMod"] = 2
+        full_member["lastThreeRank"] = 450
+        full_member["lastThree"] = 1
+        full_member["townhallImage"] = "static/townhalls/15.png"
+        full_member["cwlWarningPenality"] = 0
+        pm.updateMembers([full_member])
+        with open(pm._membersDataFile) as f:
+            data = json.load(f)
+        assert "rank" not in data[0]
+        assert "wars" not in data[0]
+        assert "averageStars" not in data[0]
+        assert "donationDisplay" not in data[0]
+        assert "tag" in data[0]
+        assert "name" in data[0]
+
+    def test_persistent_fields_preserved(self, pm):
+        pm.updateMembers([make_member(tag="#P1", donations=500, donations_received=1000)])
+        with open(pm._membersDataFile) as f:
+            data = json.load(f)
+        assert data[0]["tag"] == "#P1"
+        assert data[0]["donations"] == 500
+        assert data[0]["donationsReceived"] == 1000
+
+
+class TestArchiveMember:
+    def test_archive_member_moves_to_archive(self, pm):
+        pm.updateMembers([make_member(tag="#LEAVER")])
+        member = pm.getMember("#LEAVER")
+        pm.archiveMember(member)
+        assert len(pm.getMembers()) == 0
+        assert os.path.exists(pm._membersArchive)
+        with open(pm._membersArchive) as f:
+            archive = json.load(f)
+        assert any(m["tag"] == "#LEAVER" for m in archive)
+
+    def test_archive_member_persists_only_persistent_fields(self, pm):
+        full_member = make_member(tag="#LEAVER")
+        full_member["rank"] = 500
+        full_member["wars"] = [1, 0, -1]
+        pm.updateMembers([full_member])
+        member = pm.getMember("#LEAVER")
+        pm.archiveMember(member)
+        with open(pm._membersArchive) as f:
+            archive = json.load(f)
+        archived = [m for m in archive if m["tag"] == "#LEAVER"][0]
+        assert "rank" not in archived
+        assert "wars" not in archived
+        assert "tag" in archived
+
+    def test_archive_member_not_found(self, pm):
+        pm.archiveMember({"tag": "#NONEXISTENT"})
+        assert len(pm.getMembers()) == 0
+
+
+class TestMigration:
+    def test_migrate_strips_computed_fields(self, pm, tmp_path):
+        members_file = pm._membersDataFile
+        manifest_file = pm._manifestFile
+        if os.path.exists(manifest_file):
+            os.remove(manifest_file)
+        full_member = make_member(tag="#P1")
+        full_member["rank"] = 500
+        full_member["wars"] = [1, 0, -1]
+        full_member["averageStars"] = 3.0
+        full_member["donationDisplay"] = "100"
+        with open(members_file, 'w') as f:
+            json.dump([full_member], f)
+        pm._migrate()
+        with open(members_file) as f:
+            data = json.load(f)
+        assert "rank" not in data[0]
+        assert "wars" not in data[0]
+        assert "tag" in data[0]
+
+    def test_migrate_creates_manifest(self, pm, tmp_path):
+        pm._migrate()
+        assert os.path.exists(pm._manifestFile)
+        with open(pm._manifestFile) as f:
+            manifest = json.load(f)
+        assert manifest["schema_version"] == pm._schemaVersion
+
+    def test_migrate_idempotent(self, pm, tmp_path):
+        members_file = pm._membersDataFile
+        manifest_file = pm._manifestFile
+        if os.path.exists(manifest_file):
+            os.remove(manifest_file)
+        pm.writeJson(members_file, [{"tag": "#P1", "name": "Test", "donations": 0}])
+        pm._migrate()
+        with open(members_file) as f:
+            first_data = f.read()
+        pm._migrate()
+        with open(members_file) as f:
+            second_data = f.read()
+        assert first_data == second_data
+
+    def test_migrate_handles_missing_members_file(self, pm, tmp_path):
+        manifest_file = pm._manifestFile
+        if os.path.exists(manifest_file):
+            os.remove(manifest_file)
+        if os.path.exists(pm._membersDataFile):
+            os.remove(pm._membersDataFile)
+        pm._migrate()
+        assert os.path.exists(pm._manifestFile)
+
+    def test_migrate_handles_corrupt_members_file(self, pm, tmp_path):
+        manifest_file = pm._manifestFile
+        if os.path.exists(manifest_file):
+            os.remove(manifest_file)
+        with open(pm._membersDataFile, 'w') as f:
+            f.write("{invalid json")
+        pm._migrate()
+        assert os.path.exists(pm._manifestFile)

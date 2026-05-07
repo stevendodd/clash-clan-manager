@@ -24,10 +24,12 @@ def make_app_state(data_dir):
             self._membersBasePath = os.path.join(base_dir, "members") + "/"
             self._membersDataFile = os.path.join(base_dir, "members", "members.json")
             self._membersArchive = os.path.join(base_dir, "members", "membersArchive.json")
+            self._manifestFile = os.path.join(base_dir, "api", "manifest.json")
             self._cwlSeasonPath = None
             for d in [self._warDataPath, self._cwlBasePath + "tmp", self._membersBasePath]:
                 if not os.path.exists(d):
                     os.makedirs(d)
+            self._migrate()
             self._loadWars()
             self._loadMembers()
 
@@ -184,7 +186,6 @@ class TestAppStateWarnings:
         members = s._clan_manager.storage.getMembers()
         assert "warnings" in members[0]
         assert len(members[0]["warnings"]) == 1
-        assert members[0]["warningCount"] == 1
 
     def test_add_warning_creates_list(self, tmp_path):
         s = make_app_state(str(tmp_path))
@@ -195,12 +196,11 @@ class TestAppStateWarnings:
     def test_remove_warning(self, tmp_path):
         s = make_app_state(str(tmp_path))
         s._clan_manager.storage._members = [
-            {"tag": "#P1", "name": "Player1", "warnings": ["20250101T1200"], "warningCount": 1}
+            {"tag": "#P1", "name": "Player1", "warnings": ["20250101T1200"]}
         ]
         s.remove_warning("#P1", "20250101T1200")
         members = s._clan_manager.storage.getMembers()
         assert len(members[0]["warnings"]) == 0
-        assert members[0]["warningCount"] == 0
 
     def test_add_cwl_warning(self, tmp_path):
         s = make_app_state(str(tmp_path))

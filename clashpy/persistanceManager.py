@@ -3,6 +3,7 @@ import os.path
 import os
 import re
 import json
+import shutil
 import tempfile
 from threading import Lock
 
@@ -16,6 +17,7 @@ class PersistanceManager:
     _membersDataFile = _membersBasePath + "members.json"
     _membersArchive =  _membersBasePath + "membersArchive.json"
     _cwlSeasonPath = None
+    _manifestFile = _apiBasePath + "/manifest.json"
     
     _memberUpdateFields = [
         "tag","name","role","townHallLevel","townhallImage", "leagueTier",
@@ -25,6 +27,15 @@ class PersistanceManager:
         "donationMod","cwlRankMod","wars","averageStars",
         "averageDestruction","rank","lastThreeRank","lastThree","sort"
        ]
+
+    _persistentMemberFields = [
+        "tag", "name", "role", "townHallLevel", "warPreference",
+        "dateLastIn", "dateLastSeen", "donations", "donationsReceived",
+        "donationHistory", "warnings", "cwlWarning"
+    ]
+
+    _schemaVersion = 2
+    _maxCwlSeasons = 6
     
     def __init__(self, clanManager, logger):
         self._clanManager = clanManager
@@ -44,10 +55,11 @@ class PersistanceManager:
         if not os.path.exists(self._membersBasePath):
             os.makedirs(self._membersBasePath, exist_ok=True)
             
+        self._migrate()
         self._loadWars()
         self._loadMembers()
- 
- 
+
+
     def writeJson(self, file, data):
         dir_name = os.path.dirname(file)
         if dir_name:
@@ -63,16 +75,18 @@ class PersistanceManager:
             except OSError:
                 pass
             raise
-                       
+
 
     def getMember(self, tag):
-        for m in self._members:
-            if tag == m["tag"]:
-                return copy.deepcopy(m)
+        with self._lock:
+            for m in self._members:
+                if tag == m["tag"]:
+                    return copy.deepcopy(m)
         return({"tag": tag})
 
     def getMembers(self):
-        return list(self._members)
+        with self._lock:
+            return copy.deepcopy(self._members)
 
     def add_warning(self, player_tag, wdate):
         with self._lock:
@@ -82,10 +96,6 @@ class PersistanceManager:
                         p["warnings"].append(wdate)
                     else:
                         p["warnings"] = [wdate]
-                    if "warningCount" in p:
-                        p["warningCount"] += 1
-                    else:
-                        p["warningCount"] = 1
                     break
 
     def remove_warning(self, player_tag, date):
@@ -96,7 +106,6 @@ class PersistanceManager:
                         for i, w in enumerate(p["warnings"]):
                             if w == date:
                                 p["warnings"].pop(i)
-                                p["warningCount"] -= 1
                                 break
                     break
 
@@ -130,7 +139,13 @@ class PersistanceManager:
             except (json.JSONDecodeError, IOError) as e:
                 self._logger.error("Failed to load members: %s", e)
                 self._members = []
-            
+
+    def _persistMembers(self):
+        persistent = []
+        for m in self._members:
+            persist = {k: m[k] for k in self._persistentMemberFields if k in m}
+            persistent.append(persist)
+        self.writeJson(self._membersDataFile, persistent)
 
     def updateMembers(self, members):
         with self._lock:
@@ -161,35 +176,41 @@ class PersistanceManager:
                 if "name" in memberUpdate:
                     self._logger.debug(status + memberUpdate["name"] + ": " + str(memberUpdate))
 
-        self.writeJson(self._membersDataFile, self._members)
+        self._persistMembers()
   
     def archiveMember(self, member):
         with self._lock:
+            target = None
             for m in self._members:
                 if m["tag"] == member["tag"]:
-                    existing = []
-                    if os.path.exists(self._membersArchive):
-                        try:
-                            with open(self._membersArchive) as f:
-                                existing = json.load(f)
-                        except (json.JSONDecodeError, IOError):
-                            existing = []
-                    existing.append(m)
-                    self.writeJson(self._membersArchive, existing)
+                    target = m
                     self._members.remove(m)
                     break
+
+        if target is not None:
+            persistent = {k: target[k] for k in self._persistentMemberFields if k in target}
+            existing = []
+            if os.path.exists(self._membersArchive):
+                try:
+                    with open(self._membersArchive) as f:
+                        existing = json.load(f)
+                except (json.JSONDecodeError, IOError):
+                    existing = []
+            existing.append(persistent)
+            self.writeJson(self._membersArchive, existing)
     
             
     def addCwlSeason(self, season, league):
         self._cwlSeasonPath = self._cwlBasePath + season
         os.makedirs(self._cwlSeasonPath, exist_ok=True)
         self.writeJson(self._cwlSeasonPath + "/league.json", league)
+        self._pruneCwlSeasons()
     
         
     def addLeagueRound(self, tag, leagueRound):
         self.writeJson(self._cwlSeasonPath + "/" + tag + ".json", leagueRound)    
     
-              
+               
     def getLatestCWL(self):
         self._latestCWL = max([os.path.join(self._cwlBasePath,d) for d in os.listdir(self._cwlBasePath) 
                      if os.path.isdir(os.path.join(self._cwlBasePath, d))], key=os.path.getmtime)
@@ -247,7 +268,10 @@ class PersistanceManager:
                     self._wars.append(json.load(f))
             except (json.JSONDecodeError, IOError) as e:
                 self._logger.error("Failed to load war file %s: %s", wf, e)
-        
+        max_wars = self._clanManager.rankHistory + 1
+        if len(self._wars) > max_wars:
+            self._wars = self._wars[:max_wars]
+            
             
     def addWar(self,war):
         if "preparationStartTime" in war:
@@ -269,7 +293,7 @@ class PersistanceManager:
                 self._wars[i]["state"] = "warEnded"
                 self._logger.debug('fix: ' + self._wars[i]['state'] + " " + self._wars[i]['endTime'])
         
-        # Only keep last 10 wars
+        # Only keep last N wars
         if len(self._wars) > 0:
             if self._wars[0]['state'] != "warEnded":       
                 self._wars = self._trimList(self._wars,self._clanManager.rankHistory+1)
@@ -280,12 +304,47 @@ class PersistanceManager:
     
     
     def _trimList(self, items, size):
-        n = len(items)
-        for i in range(0, n - size):
-            items.pop()
-        return(items)
+        return items[:size]
     
     def _sortAlphaNum(self, items):
         convert = lambda text: int(text) if text.isdigit() else text
         alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
         return sorted(items, key=alphanum_key)
+
+    def _pruneCwlSeasons(self):
+        if not os.path.exists(self._cwlBasePath):
+            return
+        seasons = sorted([
+            os.path.join(self._cwlBasePath, d)
+            for d in os.listdir(self._cwlBasePath)
+            if os.path.isdir(os.path.join(self._cwlBasePath, d)) and not d.endswith('tmp')
+        ])
+        if len(seasons) > self._maxCwlSeasons:
+            for season_dir in seasons[:-self._maxCwlSeasons]:
+                self._logger.info("Pruning old CWL season: %s", season_dir)
+                shutil.rmtree(season_dir)
+
+    def _migrate(self):
+        if os.path.exists(self._manifestFile):
+            try:
+                with open(self._manifestFile) as f:
+                    manifest = json.load(f)
+                    if manifest.get("schema_version", 0) >= self._schemaVersion:
+                        return
+            except (json.JSONDecodeError, IOError):
+                pass
+
+        if os.path.exists(self._membersDataFile):
+            try:
+                with open(self._membersDataFile) as f:
+                    members = json.load(f)
+                stripped = []
+                for m in members:
+                    persist = {k: m[k] for k in self._persistentMemberFields if k in m}
+                    stripped.append(persist)
+                self.writeJson(self._membersDataFile, stripped)
+                self._logger.info("Migrated members.json to schema version %d", self._schemaVersion)
+            except (json.JSONDecodeError, IOError) as e:
+                self._logger.error("Failed to migrate members.json: %s", e)
+
+        self.writeJson(self._manifestFile, {"schema_version": self._schemaVersion})

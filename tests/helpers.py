@@ -44,11 +44,13 @@ def make_persistance_manager(data_dir):
             self._membersBasePath = os.path.join(base_dir, "members") + "/"
             self._membersDataFile = os.path.join(base_dir, "members", "members.json")
             self._membersArchive = os.path.join(base_dir, "members", "membersArchive.json")
+            self._manifestFile = os.path.join(base_dir, "api", "manifest.json")
             self._cwlSeasonPath = None
 
             for d in [self._warDataPath, self._cwlBasePath + "tmp", self._membersBasePath]:
                 os.makedirs(d, exist_ok=True)
 
+            self._migrate()
             self._loadWars()
             self._loadMembers()
 
