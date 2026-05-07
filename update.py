@@ -4,6 +4,8 @@ import migration
 import utils
 import hmac
 import appState
+import donationManager
+import warningsController
 
 from flask import Flask, jsonify
 from flask import request, redirect, render_template
@@ -16,7 +18,7 @@ import os.path
 import os
 import time
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from logging.handlers import RotatingFileHandler
 from logging.config import dictConfig
@@ -151,54 +153,19 @@ def processResults(st):
     for m in currentMembers:
         member = clanManager.storage.getMember(m["tag"])
 
-        sortOrder = 0
         member["name"] = m["name"]
-        member["donationsReceived"] = m["donationsReceived"]
-        member["donations"] = m["donations"]
         member["townhallImage"] = "static/townhalls/" + str(m["townHallLevel"]) + ".png"
         member["league"] = m["league"]
         member["warningCount"] = 0
+        sortOrder = 0
 
         member["wars"] = []
         for x in range(clanManager.rankHistory):
             member["wars"].append(0)
 
-        if "donationHistory" not in member:
-            member = utils.addDonationHistory(member, currentSeason, previousSeason)
-
-        if currentSeason not in member["donationHistory"]:
-            member["donationHistory"][currentSeason] = {
-               "donations": 0,
-               "donationsReceived": 0,
-               "savedDonations": 0,
-               "savedDonationsReceived": 0
-            }
-
-        if m["donations"] < member["donationHistory"][currentSeason]["donations"] and day != seasonEnd:
-            app.logger.debug("Saving donations for {} - donations: {} saved: +{}".format(
-                    member["name"],
-                    m["donations"],
-                    member["donationHistory"][currentSeason]["donations"]))
-
-            member["donationHistory"][currentSeason]["savedDonations"] += member["donationHistory"][currentSeason]["donations"]
-            member["donationHistory"][currentSeason]["savedDonationsReceived"] += member["donationHistory"][currentSeason]["donationsReceived"]
-
-        member["donationHistory"][currentSeason]["donations"] = m["donations"]
-        member["donationHistory"][currentSeason]["donationsReceived"] = m["donationsReceived"]
-
-        member["donationDisplay"] = m["donations"]
-        if member["donationHistory"][currentSeason]["savedDonations"] > 0:
-            member["donationDisplay"] = "{} (+{})".format(
-                        m["donations"],
-                        member["donationHistory"][currentSeason]["savedDonations"])
-
-        member["prevDonationDisplay"] = 0
-        if previousSeason in member["donationHistory"]:
-            member["prevDonationDisplay"] = member["donationHistory"][previousSeason]["donations"]
-            if member["donationHistory"][previousSeason]["savedDonations"] > 0:
-                member["prevDonationDisplay"] = "{} (+{})".format(
-                            member["donationHistory"][previousSeason]["donations"],
-                            member["donationHistory"][previousSeason]["savedDonations"])
+        member = donationManager.processDonations(
+            member, m, currentSeason, previousSeason, day, seasonEnd, app.logger
+        )
 
         if m["role"] == "leader":
             member["role"] = "L"
@@ -213,7 +180,7 @@ def processResults(st):
             member["dateLastIn"] = "-"
 
         windex=-1
-        rank = lastThreeRank = stars = attacks = destruction = missedAttackCounter = 0
+        rank = lastThreeRank = stars = attacks = destruction = 0
         for w in clanManager.storage.getWars():
             if w["state"] == "warEnded":
                 windex += 1
@@ -223,15 +190,6 @@ def processResults(st):
                             member["wars"][windex] = len(wm["attacks"])
                             if windex < clanManager.rankHistory:
                                 rank += member["wars"][windex]
-
-                            if len(wm["attacks"]) == 1:
-                                wdate = datetime.strptime(w["endTime"], '%Y%m%dT%H%M%S.000Z')
-                                if datetime.now() < wdate + timedelta(days=7):
-                                    missedAttackCounter +=1
-
-                                    if missedAttackCounter == 2:
-                                        missedAttackCounter = 0
-                                        member["warningCount"] += 1
 
                             for a in wm["attacks"]:
                                 dTownhallLevel = 0
@@ -259,10 +217,6 @@ def processResults(st):
                         else:
                             member["wars"][windex] = -1
 
-                            wdate = datetime.strptime(w["endTime"], '%Y%m%dT%H%M%S.000Z')
-                            if datetime.now() < wdate + timedelta(days=7):
-                                member["warningCount"] += 1
-
                         if windex < 2:
                             lastThreeRank = rank
 
@@ -276,36 +230,16 @@ def processResults(st):
             member["averageStars"] = 0
             member["averageDestruction"] = 0
 
-        if "cwlWarning" in member:
-            if len(member["cwlWarning"]) > 0:
-                member["cwlWarningPenality"] = 500
-            else:
-                member["cwlWarningPenality"] = 0
+        member["warningCount"] = warningsController.countMissedAttackWarning(
+            clanManager.storage.getWars(), member["tag"]
+        )
 
-        if "warnings" in member:
-            member["warnings"] = expireWarnings(member["name"],member["warnings"],7)
-            member["warningCount"] = member["warningCount"] + len(member["warnings"])
+        member = warningsController.processCwlWarnings(member, day, clanManager.warLeagueEndDay)
+        member = warningsController.processManualWarnings(member, member["warningCount"])
 
-        if day > clanManager.warLeagueEndDay and "cwlWarning" in member:
-            member["cwlWarning"] = expireWarnings(member["name"],member["cwlWarning"],30)
-
-        donations = donationsReceived = donationMod = cwlRankMod = 0
-        if day <= clanManager.warLeagueEndDay or day >= seasonEnd:
-            if previousSeason in member["donationHistory"]:
-                donationsReceived = member["donationHistory"][previousSeason]["donationsReceived"] + \
-                                    member["donationHistory"][previousSeason]["savedDonationsReceived"]
-                donations = member["donationHistory"][previousSeason]["donations"] + \
-                                    member["donationHistory"][previousSeason]["savedDonations"]
-        else:
-            donationsReceived = member["donationHistory"][currentSeason]["donationsReceived"] + \
-                                member["donationHistory"][currentSeason]["savedDonationsReceived"]
-            donations = member["donationHistory"][currentSeason]["donations"] + \
-                                member["donationHistory"][currentSeason]["savedDonations"]
-
-        member["donationMod"] = "+" + str(int(donations/100))
-        member["cwlRankMod"] = int(donations/2000)
-        if member["cwlRankMod"] > 6:
-            member["cwlRankMod"] = 6
+        donations, donationsReceived, member = donationManager.calculateDonationRank(
+            member, currentSeason, previousSeason, day, clanManager.warLeagueEndDay, seasonEnd
+        )
 
         member["rank"] = int((donations/100)+(rank*100))
         if "cwlWarningPenality" in member:
@@ -350,19 +284,6 @@ def processResults(st):
                              banners=getBanners()
                              ))
 
-
-def expireWarnings(player,warnings,t):
-    removeDates = []
-    for w in warnings:
-        wdate = datetime.strptime(w, '%Y%m%dT%H%M')
-        if datetime.now() > wdate + timedelta(days=t):
-            removeDates.append(w)
-            app.logger.debug("Removing warning: " + player + " " + datetime.now().strftime('%Y%m%dT%H%M') + "> " + wdate.strftime('%Y%m%dT%H%M'))
-
-    for w in removeDates:
-        warnings.remove(w)
-
-    return(warnings)
 
 def pruneBackups():
     path = "data/backup"

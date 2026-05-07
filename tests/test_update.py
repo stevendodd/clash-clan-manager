@@ -4,19 +4,11 @@ import tempfile
 import time
 from datetime import datetime, timedelta
 from helpers import make_persistance_manager, MockLogger
+import warningsController
 
 
 def expireWarnings(player, warnings, t):
-    removeDates = []
-    for w in warnings:
-        wdate = datetime.strptime(w, '%Y%m%dT%H%M')
-        if datetime.now() > wdate + timedelta(days=t):
-            removeDates.append(w)
-
-    for w in removeDates:
-        warnings.remove(w)
-
-    return warnings
+    return warningsController.expireWarnings(player, warnings, t)
 
 
 def pruneBackups(path):
