@@ -8,13 +8,8 @@ import persistanceManager
 
 class ClanManager:
 
-    notesKey = ""
     warLeagueEndDay = 10
     rankHistory = 10
-    
-    storage = None
-    api = None
-    clanDetails = {}
     
     configFile = "data/config.json"
     dataFile = "data/mydata.json"
@@ -31,13 +26,20 @@ class ClanManager:
     
     def __init__(self, logger):
         self._logger = logger
+        self.storage = None
+        self.api = None
+        self.clanDetails = {}
+        self.notesKey = ""
 
         if not os.path.exists('data/backup'):
-            os.makedirs('data/backup')  
+            os.makedirs('data/backup', exist_ok=True)
         
         if os.path.exists(self.configFile):
-            f = open(self.configFile)
-            c = json.load(f)
+            try:
+                with open(self.configFile) as f:
+                    c = json.load(f)
+            except (json.JSONDecodeError, IOError) as e:
+                raise RuntimeError("Failed to parse config file: " + self.configFile + ": " + str(e))
             email = c["email"]
             password = c["password"]
             key_name = c["keyName"]
@@ -46,9 +48,11 @@ class ClanManager:
             
             if "history" in c:
                 self.rankHistory = c["history"]
+        else:
+            raise FileNotFoundError("Config file not found: " + self.configFile)
                 
-            self.api = clashApi.ClashApi(self, c["email"], c["password"], c["keyName"], c["clanTag"], self._logger)
-            self.storage = persistanceManager.PersistanceManager(self, self._logger)
+        self.api = clashApi.ClashApi(self, c["email"], c["password"], c["keyName"], c["clanTag"], self._logger)
+        self.storage = persistanceManager.PersistanceManager(self, self._logger)
         
         
         self.clanDetails["name"] = self.api.getClanName()

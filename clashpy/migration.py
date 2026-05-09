@@ -6,17 +6,20 @@ import utils
 
 class Migration:
     
+    SCHEMA_VERSION = 2
+    
     def __init__(self, clan, clanManager):
         self._clanManager = clanManager
         self._clan = clan
-        self.migrateCwl()
-        self.migrateWars()
-        self.migrateMembers()
-        self.pruneMembers()
-        self.migrateDonations()
+        self._migrateCwl()
+        self._migrateWars()
+        self._migrateMembers()
+        self._pruneMembers()
+        self._migrateDonations()
+        self._removeStaleKeys()
         
         
-    def migrateCwl(self):
+    def _migrateCwl(self):
         original = "data/cwl"
         target = "data/api"
         if os.path.exists(original):
@@ -25,7 +28,7 @@ class Migration:
             shutil.move(original, target)
             
             
-    def migrateWars(self):
+    def _migrateWars(self):
         if "wars" in self._clan:
             basePath = "data/api/war/"
             for w in self._clan["wars"]:
@@ -36,8 +39,8 @@ class Migration:
             
         if "warLog" in self._clan:
             del self._clan["warLog"]
-            
-    def migrateMembers(self):
+
+    def _migrateMembers(self):
         if "members" in self._clan:
             memberFile = "data/members/members.json"
             
@@ -52,7 +55,7 @@ class Migration:
             del self._clan["members"]
 
 
-    def pruneMembers(self):
+    def _pruneMembers(self):
         year = int(datetime.now().strftime("%y")) - 1
         for m in self._clanManager.storage.getMembers():
             if "dateLastSeen" not in m:
@@ -64,7 +67,7 @@ class Migration:
 
 
             
-    def migrateDonations(self):
+    def _migrateDonations(self):
         currentSeason = utils.getCurrentSeason()
         previousSeason = utils.getPreviousSeason()
         clan = self._clanManager.api.getClan()
@@ -91,3 +94,8 @@ class Migration:
                     del m["prevDonationsReceived"]
             
                 self._clanManager.storage.updateMembers([m])
+
+    def _removeStaleKeys(self):
+        for key in ("updateLock", "seasonEnd"):
+            if key in self._clan:
+                del self._clan[key]

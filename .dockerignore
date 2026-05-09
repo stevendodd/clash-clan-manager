@@ -2,3 +2,8 @@
 .project
 .git
 .gitignore
+data/
+pyvenv/
+venv/
+__pycache__/
+test.py
